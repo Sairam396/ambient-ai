@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Ambient AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1321;
+      --panel: #121b2f;
+      --panel-2: #18233b;
+      --panel-3: #0f1729;
+      --border: #2b3858;
+      --text: #eef3ff;
+      --muted: #9fb0d4;
+      --muted2: #7e90b7;
+      --accent: #7da2ff;
+      --accent-2: #6fe2c1;
+      --good: #54d38a;
+      --bad: #f27f7f;
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: Inter, system-ui, sans-serif;
+      color: var(--text);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .topbar {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-3);
+    }
+
+    .title { min-width: 0; }
+
+    .title h1 {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .title p {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--panel);
+      white-space: nowrap;
+    }
+
+    .status.on { color: var(--good); }
+    .status.thinking { color: var(--accent-2); }
+    .status.err { color: var(--bad); }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .gear-btn, .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .strip {
+      flex-shrink: 0;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: #10192c;
+    }
+
+    .strip-top {
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      margin-bottom: 8px;
+    }
+
+    .strip-top::-webkit-scrollbar {
+      display: none;
+    }
+
+    .pill {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--panel);
+      white-space: nowrap;
+    }
+
+    .pill.active {
+      color: var(--accent-2);
+      border-color: #2c8c7d;
+    }
+
+    .live-text {
+      min-height: 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .live-text.muted {
+      color: var(--muted);
+    }
+
+    .meter {
+      margin-top: 6px;
+      height: 4px;
+      width: 100%;
+      border-radius: 999px;
+      background: #26314b;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.08s linear;
+    }
+
+    .main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      overflow: hidden;
+    }
+
+    .answer-wrap {
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 10px 18px;
+    }
+
+    .empty {
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 18px 14px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.7;
+      background: var(--panel);
+      font-size: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .tag {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      font-weight: 800;
+      background: #283758;
+      color: #d8e5ff;
+      flex-shrink: 0;
+    }
+
+    .question-text {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: #eff4ff;
+      word-break: break-word;
+    }
+
+    .type-badge {
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .answer-body {
+      padding: 10px;
+    }
+
+    .answer-text {
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .answer-text p { margin-bottom: 12px; }
+    .answer-text ul, .answer-text ol { margin: 0 0 12px 18px; }
+    .answer-text li { margin-bottom: 8px; }
+    .answer-text strong { color: #fff; font-weight: 800; }
+
+    .answer-text code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #1c2740;
+      border: 1px solid var(--border);
+    }
+
+    .answer-text pre {
+      margin: 10px 0 14px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      white-space: pre;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #eaf2ff;
+      max-height: 180px;
+    }
+
+    .meta {
+      padding: 0 10px 10px;
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+    }
+
+    .history-panel {
+      border-top: 1px solid var(--border);
+      background: var(--panel-3);
+      max-height: 42vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .history-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-head h3 {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .history-list {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 0;
+    }
+
+    .history-item {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid rgba(43,56,88,0.6);
+      padding: 10px 12px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .history-q {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      color: #eef4ff;
+    }
+
+    .history-a {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .history-meta {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--muted2);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .bottom {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 10px calc(10px + var(--safe-bottom));
+      border-top: 1px solid var(--border);
+      background: #0f1729;
+    }
+
+    .mic-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .mic-btn.on {
+      border-color: #2c8c7d;
+      box-shadow: 0 0 0 6px rgba(111, 226, 193, 0.08);
+    }
+
+    .mic-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .bottom-text {
+      min-width: 0;
+    }
+
+    .bottom-text .main-text {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .bottom-text .sub-text {
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .bottom-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn {
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .resume-btn {
+      position: fixed;
+      right: 12px;
+      bottom: calc(80px + env(safe-area-inset-bottom));
+      z-index: 20;
+      padding: 11px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #07111f;
+      font-weight: 800;
+      font-size: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(5, 9, 18, 0.84);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      overflow-y: auto;
+    }
+
+    .setup {
+      width: 100%;
+      max-width: 620px;
+      max-height: 92vh;
+      overflow-y: auto;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: #10192c;
+      padding: 16px;
+    }
+
+    .setup h2 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .setup p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #d9e6ff;
+    }
+
+    .setup input,
+    .setup select,
+    .setup textarea {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #16213a;
+      color: var(--text);
+      outline: none;
+      font-size: 14px;
+    }
+
+    .setup textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #16213a;
+      margin-bottom: 12px;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .primary {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #07111f;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .secondary {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #16213a;
+      color: var(--text);
+      font-weight: 700;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    @media (min-width: 431px) {
+      .title h1 { font-size: 18px; }
+      .title p { font-size: 12px; }
+      .status { font-size: 12px; padding: 7px 11px; }
+      .live-text { font-size: 13px; }
+      .answer-text { font-size: 18px; line-height: 1.65; }
+      .question-text { font-size: 13px; }
+      .bottom { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+      .btn { height: 34px; padding: 0 10px; font-size: 12px; }
+      .mic-btn { width: 50px; height: 50px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay">
+    <div class="setup">
+      <h2>Ambient AI</h2>
+      <p>Continuous or ask-once interview copilot with mobile-first compact UI.</p>
+
+      <label class="label" for="keyInput">OpenAI API key</label>
+      <input type="password" id="keyInput" placeholder="sk-..." autocomplete="off" />
+
+      <label class="label" for="modelSelect">Answer model</label>
+      <select id="modelSelect">
+        <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+        <option value="gpt-5.4">gpt-5.4</option>
+        <option value="gpt-4o">gpt-4o</option>
+      </select>
+
+      <label class="label" for="transcribeModelSelect">Transcription model</label>
+      <select id="transcribeModelSelect">
+        <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
+        <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+      </select>
+
+      <label class="label" for="answerModeSelect">Answer mode</label>
+      <select id="answerModeSelect">
+        <option value="compact">Compact</option>
+        <option value="full">Full</option>
+      </select>
+
+      <label class="label" for="listenModeSelect">Listening mode</label>
+      <select id="listenModeSelect">
+        <option value="ask_once">Ask once</option>
+        <option value="continuous">Continuous</option>
+      </select>
+
+      <div class="toggle">
+        <input type="checkbox" id="speakToggle" />
+        <label for="speakToggle">Speak answers aloud</label>
+      </div>
+
+      <div class="toggle">
+        <input type="checkbox" id="wakeWordToggle" />
+        <label for="wakeWordToggle">Require wake phrase: “hey assistant”</label>
+      </div>
+
+      <label class="label" for="resumeContext">Resume / project context</label>
+      <textarea id="resumeContext" placeholder="Paste resume highlights, projects, ownership, metrics, Android/AAOS experience, Kotlin work, debugging stories..."></textarea>
+
+      <button class="secondary" onclick="pickResumeFile()">Upload resume file (.txt, .md, .pdf, .docx)</button>
+      <input type="file" id="resumeFile" class="hidden" accept=".txt,.md,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" />
+      <p id="uploadStatus">No file uploaded.</p>
+
+      <label class="label" for="customStyle">Optional extra answer style</label>
+      <textarea id="customStyle" placeholder="Example: natural senior answers, Kotlin for coding, AAOS internals, practical debugging, concise communication."></textarea>
+
+      <button class="primary" onclick="saveSettings()">Start</button>
+    </div>
+  </div>
+
+  <div class="topbar">
+    <div class="title">
+      <h1>Ambient AI</h1>
+      <p>Continuous interview copilot</p>
+    </div>
+
+    <div class="status" id="statusBadge">
+      <div class="dot"></div>
+      <span id="statusText">Stopped</span>
+    </div>
+
+    <button class="gear-btn" onclick="openSettings()">⚙</button>
+  </div>
+
+  <div class="strip">
+    <div class="strip-top">
+      <div class="pill" id="listenModePill">Ask once</div>
+      <div class="pill" id="modePill">Compact</div>
+      <div class="pill" id="wakePill">Wake phrase optional</div>
+      <div class="pill" id="filterPill">Self-read filter on</div>
+    </div>
+    <div class="live-text muted" id="liveText">Ready.</div>
+    <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+  </div>
+
+  <div class="main">
+    <div class="answer-wrap" id="answerWrap">
+      <div class="empty" id="emptyState">
+        Tap the mic and ask a question.<br>
+        In continuous mode, the app tries to ignore you reading the last answer and wait for a new question.
+      </div>
+
+      <div class="card hidden" id="latestCard">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="tag">Q</div>
+            <div class="question-text" id="latestQuestion">—</div>
+          </div>
+          <div class="type-badge" id="typeBadge">General</div>
+        </div>
+        <div class="answer-body">
+          <div class="answer-text" id="latestAnswer"><p>—</p></div>
+        </div>
+        <div class="meta" id="latestMeta">—</div>
+      </div>
+    </div>
+
+    <div class="history-panel hidden" id="historyPanel">
+      <div class="history-head">
+        <h3>Previous answers</h3>
+        <button class="icon-btn" onclick="toggleHistory()">⌄</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </div>
+
+  <button class="resume-btn hidden" id="resumeBtn" onclick="resumeListening()">Resume listening</button>
+
+  <div class="bottom">
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+
+    <div class="bottom-text">
+      <div class="main-text" id="bottomMain">Tap mic to start</div>
+      <div class="sub-text" id="bottomSub">Continuous mode can auto-answer follow-ups.</div>
+    </div>
+
+    <div class="bottom-actions">
+      <button class="btn" onclick="scrollToLatest()">Latest</button>
+      <button class="btn" onclick="toggleHistory()">History</button>
+      <button class="btn" onclick="clearAnswer()">Clear</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+
+  <script>
+    let settings = {
+      apiKey: localStorage.getItem("aai_key") || "",
+      model: localStorage.getItem("aai_model") || "gpt-5.4-mini",
+      transcribeModel: localStorage.getItem("aai_transcribe_model") || "gpt-4o-mini-transcribe",
+      answerMode: localStorage.getItem("aai_answer_mode") || "compact",
+      listenMode: localStorage.getItem("aai_listen_mode") || "ask_once",
+      resumeContext: localStorage.getItem("aai_resume") || "",
+      customStyle: localStorage.getItem("aai_style") || "",
+      speakAnswers: localStorage.getItem("aai_speak") === "1",
+      requireWakePhrase: localStorage.getItem("aai_wake_phrase") === "1"
+    };
+
+    let active = false;
+    let thinking = false;
+    let isSpeaking = false;
+    let historyDrawerOpen = false;
+
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioContext = null;
+    let analyser = null;
+    let sourceNode = null;
+    let pcmData = null;
+    let monitorRaf = null;
+
+    let isSegmentRecording = false;
+    let speakingStartedAt = 0;
+    let lastVoiceAt = 0;
+
+    let chatHistory = [];
+    let qaHistory = JSON.parse(localStorage.getItem("aai_qa_history") || "[]");
+
+    let lastAnswerText = "";
+    let lastAnswerAt = 0;
+    let ignoredCount = 0;
+
+    let pendingQuestionText = "";
+    let pendingQuestionTimer = null;
+    let pendingQuestionStartedAt = 0;
+
+    const VOICE_THRESHOLD = 0.025;
+    const SILENCE_AFTER_SPEECH_MS = 1800;
+    const MIN_SPEECH_MS = 700;
+    const MAX_SEGMENT_MS = 25000;
+
+    const WAKE_PHRASE = "hey assistant";
+    const STOP_COMMANDS = ["stop listening", "pause listening", "stop mic", "stop"];
+    const END_COMMANDS = ["answer now", "that's it", "done", "go ahead"];
+
+    const SELF_READ_WINDOW_MS = 35000;
+    const SELF_READ_SIMILARITY_THRESHOLD = 0.80;
+
+    const QUESTION_MERGE_WINDOW_MS = 4200;
+    const MAX_PENDING_QUESTION_MS = 20000;
+
+    restoreSettings();
+    refreshPills();
+    renderHistory();
+    if (settings.apiKey) hide("overlay");
+
+    function byId(id) { return document.getElementById(id); }
+    function hide(id) { byId(id).classList.add("hidden"); }
+    function show(id) { byId(id).classList.remove("hidden"); }
+
+    function restoreSettings() {
+      byId("keyInput").value = settings.apiKey;
+      byId("modelSelect").value = settings.model;
+      byId("transcribeModelSelect").value = settings.transcribeModel;
+      byId("answerModeSelect").value = settings.answerMode;
+      byId("listenModeSelect").value = settings.listenMode;
+      byId("resumeContext").value = settings.resumeContext;
+      byId("customStyle").value = settings.customStyle;
+      byId("speakToggle").checked = settings.speakAnswers;
+      byId("wakeWordToggle").checked = settings.requireWakePhrase;
+    }
+
+    function refreshPills() {
+      byId("listenModePill").textContent = settings.listenMode === "ask_once" ? "Ask once" : "Continuous";
+      byId("listenModePill").className = "pill active";
+      byId("modePill").textContent = settings.answerMode === "compact" ? "Compact" : "Full";
+      byId("modePill").className = "pill active";
+      byId("wakePill").textContent = settings.requireWakePhrase ? "Wake phrase on" : "Wake phrase optional";
+      byId("wakePill").className = "pill" + (settings.requireWakePhrase ? " active" : "");
+      byId("filterPill").textContent = "Self-read filter on";
+      byId("filterPill").className = "pill active";
+    }
+
+    function saveSettings() {
+      const key = byId("keyInput").value.trim();
+      if (!key.startsWith("sk-")) {
+        alert("Enter a valid OpenAI key starting with sk-");
+        return;
+      }
+
+      settings.apiKey = key;
+      settings.model = byId("modelSelect").value;
+      settings.transcribeModel = byId("transcribeModelSelect").value;
+      settings.answerMode = byId("answerModeSelect").value;
+      settings.listenMode = byId("listenModeSelect").value;
+      settings.resumeContext = byId("resumeContext").value.trim();
+      settings.customStyle = byId("customStyle").value.trim();
+      settings.speakAnswers = byId("speakToggle").checked;
+      settings.requireWakePhrase = byId("wakeWordToggle").checked;
+
+      localStorage.setItem("aai_key", settings.apiKey);
+      localStorage.setItem("aai_model", settings.model);
+      localStorage.setItem("aai_transcribe_model", settings.transcribeModel);
+      localStorage.setItem("aai_answer_mode", settings.answerMode);
+      localStorage.setItem("aai_listen_mode", settings.listenMode);
+      localStorage.setItem("aai_resume", settings.resumeContext);
+      localStorage.setItem("aai_style", settings.customStyle);
+      localStorage.setItem("aai_speak", settings.speakAnswers ? "1" : "0");
+      localStorage.setItem("aai_wake_phrase", settings.requireWakePhrase ? "1" : "0");
+
+      refreshPills();
+      hide("overlay");
+    }
+
+    function openSettings() {
+      stopMic();
+      show("overlay");
+    }
+
+    function setStatus(mode, text) {
+      const badge = byId("statusBadge");
+      badge.className = "status" + (mode ? " " + mode : "");
+      byId("statusText").textContent = text;
+    }
+
+    function setBottom(main, sub) {
+      byId("bottomMain").textContent = main;
+      byId("bottomSub").textContent = sub;
+    }
+
+    function setLive(text, muted = false) {
+      const el = byId("liveText");
+      el.textContent = text;
+      el.className = "live-text" + (muted ? " muted" : "");
+    }
+
+    function toggleMic() {
+      active ? stopMic() : startMic();
+    }
+
+    async function startMic() {
+      if (!settings.apiKey) {
+        openSettings();
+        return;
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1
+          }
+        });
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        sourceNode = audioContext.createMediaStreamSource(mediaStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        pcmData = new Float32Array(analyser.fftSize);
+        sourceNode.connect(analyser);
+
+        active = true;
+        byId("micBtn").classList.add("on");
+        byId("resumeBtn").classList.add("hidden");
+        setStatus("on", "Listening");
+        setBottom("Listening...", "Ask your question and pause briefly.");
+        setLive("Listening...", true);
+
+        startMonitorLoop();
+      } catch (err) {
+        setStatus("err", "Mic denied");
+        setBottom("Microphone access failed", err.message || "Allow microphone access.");
+      }
+    }
+
+    function stopMic() {
+      active = false;
+      thinking = false;
+      isSpeaking = false;
+      isSegmentRecording = false;
+      audioChunks = [];
+      
+      clearPendingQuestion();
+
+      if (monitorRaf) {
+        cancelAnimationFrame(monitorRaf);
+        monitorRaf = null;
+      }
+
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        try { mediaRecorder.stop(); } catch (e) {}
+      }
+
+      if (sourceNode) {
+        try { sourceNode.disconnect(); } catch (e) {}
+        sourceNode = null;
+      }
+
+      if (audioContext) {
+        try { audioContext.close(); } catch (e) {}
+        audioContext = null;
+      }
+
+      analyser = null;
+      pcmData = null;
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+
+      speechSynthesis.cancel();
+
+      byId("micBtn").classList.remove("on");
+      byId("meterFill").style.width = "0%";
+      setStatus("", "Stopped");
+      setBottom("Tap mic to start", "Continuous mode can auto-answer follow-ups.");
+      setLive("Ready.", true);
+    }
+
+    function resumeListening() {
+      startMic();
+    }
+
+    function startSegmentRecording() {
+      if (!mediaStream || thinking || isSpeaking || isSegmentRecording) return;
+
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: getBestMimeType() });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (!audioChunks.length || !active) return;
+        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        audioChunks = [];
+        await handleRecordedSegment(blob);
+      };
+
+      mediaRecorder.start();
+      isSegmentRecording = true;
+      speakingStartedAt = Date.now();
+      lastVoiceAt = Date.now();
+
+      setLive("Speech detected... keep speaking", false);
+      setBottom("Recording question", "Pause naturally when the question is finished.");
+    }
+
+    function stopSegmentRecording() {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+      isSegmentRecording = false;
+      try { mediaRecorder.stop(); } catch (e) {}
+    }
+
+    function startMonitorLoop() {
+      const loop = () => {
+        if (!active || !analyser || thinking || isSpeaking) {
+          monitorRaf = requestAnimationFrame(loop);
+          return;
+        }
+
+        analyser.getFloatTimeDomainData(pcmData);
+
+        let sum = 0;
+        for (let i = 0; i < pcmData.length; i++) sum += pcmData[i] * pcmData[i];
+        const rms = Math.sqrt(sum / pcmData.length);
+
+        const meterPct = Math.min(100, Math.max(0, (rms / 0.12) * 100));
+        byId("meterFill").style.width = meterPct.toFixed(0) + "%";
+
+        const hasVoice = rms > VOICE_THRESHOLD;
+        const now = Date.now();
+
+        if (hasVoice) {
+          lastVoiceAt = now;
+          if (!isSegmentRecording) startSegmentRecording();
+          setLive("Listening to question...", true);
+        } else if (isSegmentRecording) {
+          const speechDuration = now - speakingStartedAt;
+          const silenceDuration = now - lastVoiceAt;
+          const segmentDuration = now - speakingStartedAt;
+
+          if (
+            speechDuration >= MIN_SPEECH_MS &&
+            (
+              silenceDuration >= SILENCE_AFTER_SPEECH_MS ||
+              segmentDuration >= MAX_SEGMENT_MS
+            )
+          ) {
+            stopSegmentRecording();
+          }
+        }
+
+        monitorRaf = requestAnimationFrame(loop);
+      };
+
+      monitorRaf = requestAnimationFrame(loop);
+    }
+
+    function getBestMimeType() {
+      const options = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus"
+      ];
+      for (const type of options) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) return type;
+      }
+      return "";
+    }
+
+    async function handleRecordedSegment(blob) {
+      if (!active || thinking || isSpeaking) return;
+
+      try {
+        setStatus("thinking", "Transcribing");
+        setBottom("Transcribing...", "Sending audio to OpenAI.");
+        setLive("Transcribing...", false);
+
+        let transcription = await transcribeAudio(blob);
+        if (!transcription || !transcription.text) {
+          setStatus("on", "Listening");
+          setBottom("Listening...", "No transcript captured.");
+          setLive("Listening...", true);
+          return;
+        }
+
+        let transcript = transcription.text.trim();
+        setLive(transcript, false);
+
+        const normalized = transcript.toLowerCase();
+
+        if (STOP_COMMANDS.includes(normalized)) {
+          stopMic();
+          return;
+        }
+
+        for (const cmd of END_COMMANDS) {
+          if (normalized.endsWith(cmd)) {
+            transcript = transcript.slice(0, -cmd.length).trim();
+            break;
+          }
+        }
+
+        if (!transcript) {
+          setStatus("on", "Listening");
+          setBottom("Listening...", "Waiting for next question.");
+          setLive("Listening...", true);
+          return;
+        }
+
+        const question = normalizeQuestion(transcript);
+        if (!question) {
+          setStatus("on", "Listening");
+          setBottom("Wake phrase required", `Say "${WAKE_PHRASE}" before your question.`);
+          setLive("Wake phrase required.", true);
+          return;
+        }
+
+        const decision = decideWhetherToAnswer(question);
+
+        if (decision.action === "ignore") {
+          ignoredCount += 1;
+          setStatus("on", "Listening");
+          setBottom("Ignored repeated speech", decision.reason);
+          setLive("Ignored as likely self-read / repeated answer.", true);
+          return;
+        }
+
+        appendToPendingQuestion(question);
+
+        setStatus("on", "Listening");
+        setBottom("Collecting question...", "Waiting briefly in case more of the question is coming.");
+        setLive(`Buffered question: ${shorten(pendingQuestionText, 120)}`, false);
+        return;
+
+      } catch (err) {
+        setStatus("err", "Transcription error");
+        setBottom("OpenAI transcription failed", err.message || "Unknown error");
+        setLive("Transcription failed.", true);
+      }
+    }
+
+    async function transcribeAudio(blob) {
+      const file = new File([blob], "question.webm", { type: blob.type || "audio/webm" });
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("model", settings.transcribeModel);
+      fd.append("language", "en");
+      fd.append(
+        "prompt",
+        "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate."
+      );
+      fd.append("response_format", "json");
+
+      const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + settings.apiKey
+        },
+        body: fd
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error?.message || ("HTTP " + res.status));
+
+      return {
+        text: (data.text || "").trim(),
+        speaker: null
+      };
+    }
+
+    function normalizeQuestion(spoken) {
+      const raw = spoken.trim();
+      if (!settings.requireWakePhrase) return raw;
+
+      const lower = raw.toLowerCase();
+      const idx = lower.indexOf(WAKE_PHRASE);
+      if (idx === -1) return "";
+
+      return raw.slice(idx + WAKE_PHRASE.length).trim().replace(/^[:,\-\s]+/, "");
+    }
+
+    function tokenize(text) {
+      return text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter(w => w.length > 2);
+    }
+
+    function similarityScore(a, b) {
+      const aa = tokenize(a);
+      const bb = tokenize(b);
+      if (!aa.length || !bb.length) return 0;
+
+      const setA = new Set(aa);
+      const setB = new Set(bb);
+      let intersection = 0;
+      for (const token of setA) {
+        if (setB.has(token)) intersection++;
+      }
+      const union = new Set([...setA, ...setB]).size || 1;
+      return intersection / union;
+    }
+
+    function looksLikeNewQuestion(text) {
+      const t = text.trim().toLowerCase();
+      if (t.includes("?")) return true;
+
+      const patterns = [
+        /^what\b/, /^why\b/, /^how\b/, /^when\b/, /^where\b/, /^which\b/,
+        /^can you\b/, /^could you\b/, /^would you\b/, /^tell me\b/,
+        /^explain\b/, /^describe\b/, /^suppose\b/, /^walk me through\b/,
+        /^give me\b/, /^let's say\b/, /^if\b/, /^in this case\b/,
+        /\bwhat happens\b/, /\bwhy did\b/, /\bhow would you\b/,
+        /\bcan you explain\b/, /\btell me about\b/, /\bdebug\b/, /\bdesign\b/,
+        /\bfollow up\b/, /\bone more thing\b/
+      ];
+
+      return patterns.some(re => re.test(t) || re.test(" " + t));
+    }
+
+    function ignoreIfMatchesLastAnswer(transcript) {
+      if (!lastAnswerText || !lastAnswerAt) {
+        return { ignore: false, similarity: 0, recent: false };
+      }
+
+      const ageMs = Date.now() - lastAnswerAt;
+      const recent = ageMs <= SELF_READ_WINDOW_MS;
+      const similarity = similarityScore(transcript, lastAnswerText);
+
+      if (recent && similarity >= SELF_READ_SIMILARITY_THRESHOLD) {
+        return { ignore: true, similarity, recent };
+      }
+
+      return { ignore: false, similarity, recent };
+    }
+
+    function decideWhetherToAnswer(transcript) {
+      if (settings.listenMode !== "continuous") {
+        return { action: "accept", reason: "ask-once mode" };
+      }
+
+      const ignoreCheck = ignoreIfMatchesLastAnswer(transcript);
+
+      if (ignoreCheck.ignore) {
+        return {
+          action: "ignore",
+          reason: `Matched recent answer (similarity ${ignoreCheck.similarity.toFixed(2)})`
+        };
+      }
+
+      if (looksLikeNewQuestion(transcript)) {
+        return { action: "accept", reason: "looks like new question" };
+      }
+
+      if (ignoreCheck.similarity < 0.45) {
+        return { action: "accept", reason: "low similarity to last answer" };
+      }
+
+      return {
+        action: "ignore",
+        reason: `Possible repeat / unclear follow-up (similarity ${ignoreCheck.similarity.toFixed(2)})`
+      };
+    }
+
+    function mergeQuestionParts(existingText, nextText) {
+  const a = existingText.trim();
+  const b = nextText.trim();
+
+  if (!a) return b;
+  if (!b) return a;
+
+  if (a.toLowerCase() === b.toLowerCase()) return a;
+  if (a.toLowerCase().endsWith(b.toLowerCase())) return a;
+
+  return a + " " + b;
+}
+
+function clearPendingQuestion() {
+  pendingQuestionText = "";
+  pendingQuestionStartedAt = 0;
+
+  if (pendingQuestionTimer) {
+    clearTimeout(pendingQuestionTimer);
+    pendingQuestionTimer = null;
+  }
+}
+
+function appendToPendingQuestion(text) {
+  const cleaned = text.trim();
+  if (!cleaned) return;
+
+  const nowTs = Date.now();
+
+  if (!pendingQuestionText) {
+    pendingQuestionText = cleaned;
+    pendingQuestionStartedAt = nowTs;
+  } else {
+    pendingQuestionText = mergeQuestionParts(pendingQuestionText, cleaned);
+  }
+
+  if (pendingQuestionTimer) {
+    clearTimeout(pendingQuestionTimer);
+  }
+
+  const ageMs = nowTs - pendingQuestionStartedAt;
+  const waitMs = ageMs >= MAX_PENDING_QUESTION_MS ? 250 : QUESTION_MERGE_WINDOW_MS;
+
+  pendingQuestionTimer = setTimeout(async () => {
+    const finalQuestion = pendingQuestionText.trim();
+    clearPendingQuestion();
+
+    if (finalQuestion) {
+      await ask(finalQuestion);
+    }
+  }, waitMs);
+}
+
+    function buildSystemPrompt() {
+      const resume = settings.resumeContext
+        ? `Candidate background:\n${settings.resumeContext}\n\n`
+        : "";
+
+      const extra = settings.customStyle
+        ? `Extra answer preferences:\n${settings.customStyle}\n\n`
+        : "";
+
+      const answerModeBlock =
+        settings.answerMode === "compact"
+          ? `Response mode: compact.
+- Keep answers short and interview-ready.
+- Behavioral/scenario answers: 4-6 bullets max.
+- Technical answers: brief mechanism + key tradeoff.
+- Coding answers: short approach, commented Kotlin code, time complexity, space complexity.
+- Avoid unnecessary detail.`
+          : `Response mode: full.
+- Give a fuller answer with structure and depth.
+- Behavioral/scenario answers: include reasoning, tradeoffs, outcome.
+- Technical answers: explain mechanism, debugging angle, tradeoffs.
+- Coding answers: approach, commented Kotlin code, time complexity, space complexity, edge cases.`;
+
+      return `You are a senior-level interview and problem-solving assistant.
+
+Core behavior:
+- Answer any question naturally, clearly, and confidently.
+- Adapt to question type:
+  - behavioral -> authentic senior ownership, impact, collaboration
+  - scenario-based -> approach, tradeoffs, risks, resolution
+  - coding -> prefer Kotlin unless another language is requested
+  - Android / AAOS / system design -> senior-level technical depth and practical debugging insight
+  - general -> direct and clear
+- If resume/project context is provided, use it to sound relevant to the candidate's real experience.
+- If the question is ambiguous due to speech recognition issues, answer the most likely interpretation first.
+- Avoid robotic filler.
+
+${answerModeBlock}
+
+Coding rules:
+- Add concise comments in code explaining each step.
+- Prefer interview-friendly code.
+
+${resume}${extra}`;
+    }
+
+    async function ask(question) {
+      thinking = true;
+      setStatus("thinking", "Thinking");
+      setBottom("Generating answer...", "Streaming answer as it arrives.");
+      setLive(question, false);
+
+      const started = Date.now();
+      chatHistory.push({ role: "user", content: question });
+      if (chatHistory.length > 8) chatHistory = chatHistory.slice(-8);
+
+      hide("emptyState");
+      show("latestCard");
+      byId("latestQuestion").textContent = question;
+      byId("latestAnswer").innerHTML = "<p><em>Thinking...</em></p>";
+      byId("latestMeta").textContent = "Generating...";
+      byId("typeBadge").textContent = "General";
+      scrollToLatest();
+
+      try {
+        const maxCompletionTokens = settings.answerMode === "compact" ? 260 : 700;
+
+        const selectedModel = chooseModelForQuestion(question);
+
+        const payload = {
+          model: selectedModel,
+          messages: [
+            { role: "system", content: buildSystemPrompt() },
+            ...chatHistory
+          ],
+          stream: true
+        };
+
+        if (selectedModel.startsWith("gpt-5")) {
+          payload.max_completion_tokens = maxCompletionTokens;
+        } else {
+          payload.max_tokens = maxCompletionTokens;
+          payload.temperature = 0.2;
+        }
+
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + settings.apiKey
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok || !res.body) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error?.message || ("HTTP " + res.status));
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let fullText = "";
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+
+            const dataStr = trimmed.slice(5).trim();
+            if (dataStr === "[DONE]") continue;
+
+            try {
+              const data = JSON.parse(dataStr);
+              const delta = data.choices?.[0]?.delta?.content || "";
+              if (!delta) continue;
+              fullText += delta;
+              byId("latestAnswer").innerHTML = formatAnswer(fullText);
+              scrollToLatest();
+            } catch (_) {}
+          }
+        }
+
+        const answer = fullText.trim() || "No answer returned.";
+        const ms = ((Date.now() - started) / 1000).toFixed(1);
+        const type = detectQuestionType(question, answer);
+
+        chatHistory.push({ role: "assistant", content: answer });
+        if (chatHistory.length > 8) chatHistory = chatHistory.slice(-8);
+
+        lastAnswerText = answer;
+        lastAnswerAt = Date.now();
+
+        saveQAHistory({
+          question,
+          answer,
+          type,
+          timestamp: now(),
+          model: selectedModel
+        });
+
+        byId("typeBadge").textContent = type;
+        byId("latestMeta").textContent = `${ms}s · ${selectedModel} · ${settings.answerMode} · ${now()}`;
+
+        thinking = false;
+
+        if (settings.speakAnswers) {
+          speakAnswer(answer);
+        } else {
+          onAnswerReady();
+        }
+      } catch (err) {
+        thinking = false;
+        byId("latestAnswer").innerHTML = `<p style="color:#f27f7f;">Error: ${esc(err.message)}</p>`;
+        byId("latestMeta").textContent = "Error";
+        setStatus("err", "Answer error");
+        setBottom("OpenAI response failed", err.message || "Unknown error");
+      }
+    }
+
+    function onAnswerReady() {
+      if (settings.listenMode === "continuous") {
+        setStatus("on", "Listening");
+        setBottom("Listening...", "Continuous mode: waiting for follow-up.");
+        setLive("Listening... self-read filter active.", true);
+      } else {
+        stopMic();
+        setStatus("", "Answer ready");
+        setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
+        setLive("Answer ready. Mic paused.", true);
+        byId("resumeBtn").classList.remove("hidden");
+      }
+    }
+
+    function speakAnswer(text) {
+      speechSynthesis.cancel();
+      isSpeaking = true;
+      setStatus("thinking", "Speaking");
+      setBottom("Speaking answer...", "Self-read filter will try to ignore repeated answer speech.");
+
+      const u = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
+      u.lang = "en-US";
+      u.rate = 1;
+      u.pitch = 1;
+
+      u.onend = () => {
+        isSpeaking = false;
+        if (settings.listenMode === "continuous") {
+          setStatus("on", "Listening");
+          setBottom("Listening...", "Continuous mode: waiting for follow-up.");
+          setLive("Listening... self-read filter active.", true);
+        } else {
+          stopMic();
+          setStatus("", "Answer ready");
+          setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
+          setLive("Answer ready. Mic paused.", true);
+          byId("resumeBtn").classList.remove("hidden");
+        }
+      };
+
+      u.onerror = () => {
+        isSpeaking = false;
+        onAnswerReady();
+      };
+
+      speechSynthesis.speak(u);
+    }
+
+    function saveQAHistory(item) {
+      qaHistory.unshift(item);
+      qaHistory = qaHistory.slice(0, 50);
+      localStorage.setItem("aai_qa_history", JSON.stringify(qaHistory));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = byId("historyList");
+      list.innerHTML = "";
+
+      if (!qaHistory.length) {
+        list.innerHTML = `<div class="history-item"><div class="history-a">No previous answers saved yet.</div></div>`;
+        return;
+      }
+
+      qaHistory.forEach((item, index) => {
+        const btn = document.createElement("button");
+        btn.className = "history-item";
+        btn.innerHTML = `
+          <div class="history-q">${esc(item.question)}</div>
+          <div class="history-a">${esc(shorten(item.answer, 120))}</div>
+          <div class="history-meta">
+            <span>${esc(item.type || "General")}</span>
+            <span>${esc(item.timestamp || "")}</span>
+            <span>${esc(item.model || "")}</span>
+          </div>
+        `;
+        btn.onclick = () => loadHistoryItem(index);
+        list.appendChild(btn);
+      });
+    }
+
+    function loadHistoryItem(index) {
+      const item = qaHistory[index];
+      if (!item) return;
+
+      hide("emptyState");
+      show("latestCard");
+      byId("latestQuestion").textContent = item.question;
+      byId("latestAnswer").innerHTML = formatAnswer(item.answer);
+      byId("typeBadge").textContent = item.type || "General";
+      byId("latestMeta").textContent = `${item.timestamp || ""} · ${item.model || ""}`;
+      scrollToLatest();
+    }
+
+    function toggleHistory() {
+      historyDrawerOpen = !historyDrawerOpen;
+      byId("historyPanel").classList.toggle("hidden", !historyDrawerOpen);
+    }
+
+    function detectQuestionType(question, answer) {
+      const text = `${question} ${answer}`.toLowerCase();
+
+      if (/kotlin|array|string|linked list|tree|graph|dp|binary search|leetcode|code|implement|function|algorithm/.test(text)) return "Coding";
+      if (/android automotive|aaos|vhal|carservice|vehicle hal|car property|can|ecu|automotive/.test(text)) return "AAOS";
+      if (/android|activity|fragment|service|broadcast|binder|anr|jetpack|coroutines|flow|room|workmanager/.test(text)) return "Android";
+      if (/tell me about a time|conflict|leadership|stakeholder|behavioral|challenge|pressure|team|ownership/.test(text)) return "Behavioral";
+      if (/what would you do|scenario|suppose|production issue|incident|debug|tradeoff|design/.test(text)) return "Scenario";
+      return "General";
+    }
+
+    function chooseModelForQuestion(question) {
+  if (settings.listenMode === "continuous") {
+    return "gpt-5.4-mini";
+  }
+
+  const q = question.toLowerCase();
+
+  const hardPatterns = [
+    /aosp/, /binder/, /aidl/, /hal/, /jni/, /ndk/, /carservice/, /vhal/,
+    /android framework/, /system service/, /embedded/, /real[- ]time/,
+    /performance/, /optimization/, /concurrency/, /deadlock/, /race condition/,
+    /design/, /architecture/, /tradeoff/, /scalability/, /native/, /c\+\+/, /ipc/
+  ];
+
+  const hardMatch = hardPatterns.some((re) => re.test(q));
+  const longQuestion = q.length > 220;
+
+  return (hardMatch || longQuestion) ? "gpt-5.4" : "gpt-5.4-mini";
+}
+
+    function formatAnswer(text) {
+      text = esc(text);
+
+      text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => `<pre>${code.trim()}</pre>`);
+      text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+      text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+      const parts = text
+        .split(/\n{2,}/)
+        .map(p => p.trim())
+        .filter(Boolean)
+        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`);
+
+      return parts.join("") || "<p>No response.</p>";
+    }
+
+    function stripMarkdownForSpeech(text) {
+      return text
+        .replace(/```[\s\S]*?```/g, " code block omitted ")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\n+/g, ". ");
+    }
+
+    function clearAnswer() {
+      clearPendingQuestion();
+      chatHistory = [];
+      qaHistory = [];
+      localStorage.removeItem("aai_qa_history");
+
+      hide("latestCard");
+      show("emptyState");
+      hide("resumeBtn");
+      byId("latestQuestion").textContent = "—";
+      byId("latestAnswer").innerHTML = "<p>—</p>";
+      byId("latestMeta").textContent = "—";
+      setLive("Ready.", true);
+      renderHistory();
+    }
+
+    function scrollToLatest() {
+      const wrap = byId("answerWrap");
+      setTimeout(() => {
+        wrap.scrollTop = 0;
+      }, 30);
+    }
+
+    function shorten(text, len) {
+      return text.length > len ? text.slice(0, len - 1) + "…" : text;
+    }
+
+    function now() {
+      return new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function pickResumeFile() {
+      byId("resumeFile").click();
+    }
+
+    byId("resumeFile").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      byId("uploadStatus").textContent = `Reading ${file.name}...`;
+
+      try {
+        const ext = file.name.toLowerCase().split(".").pop();
+
+        if (ext === "txt" || ext === "md") {
+          appendResumeText(await file.text());
+        } else if (ext === "pdf") {
+          appendResumeText(await extractTextFromPdf(file));
+        } else if (ext === "docx") {
+          appendResumeText(await extractTextFromDocx(file));
+        } else {
+          throw new Error("Unsupported file type");
+        }
+
+        byId("uploadStatus").textContent = `${file.name} loaded into resume context.`;
+      } catch (err) {
+        byId("uploadStatus").textContent = `Upload failed: ${err.message}`;
+      }
+    });
+
+    function appendResumeText(text) {
+      const box = byId("resumeContext");
+      const trimmed = text.trim();
+      if (!trimmed) throw new Error("No text found in file");
+      box.value = box.value.trim() ? box.value.trim() + "\n\n" + trimmed : trimmed;
+    }
+
+    async function extractTextFromPdf(file) {
+      const arr = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arr }).promise;
+      let out = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        out.push(content.items.map(item => item.str).join(" "));
+      }
+      return out.join("\n\n");
+    }
+
+    async function extractTextFromDocx(file) {
+      const arr = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: arr });
+      return result.value || "";
+    }
+  </script>
+</body>
+</html>
