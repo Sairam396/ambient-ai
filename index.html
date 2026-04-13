@@ -586,7 +586,7 @@
     .type-send {
       width: 40px; height: 40px; border-radius: 10px;
       border: none; background: var(--accent); color: #fff;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
     .type-send:active { opacity: 0.75; }
 
@@ -614,8 +614,8 @@
 
       <label class="label" for="modelSelect">Answer model</label>
       <select id="modelSelect">
-        <option value="gpt-5.4-mini">gpt-5.4-mini (fast, lower cost)</option>
-        <option value="gpt-5.4" selected>gpt-5.4 (best, recommended)</option>
+        <option value="gpt-5.4-mini">gpt-5.4-mini (fast)</option>
+        <option value="gpt-5.4" selected>gpt-5.4 (best)</option>
       </select>
 
       <label class="label" for="transcribeModelSelect">Transcription model</label>
@@ -745,6 +745,7 @@
     <div class="bottom-actions">
       <button class="btn" onclick="scrollToLatest()">Latest</button>
       <button class="btn" onclick="toggleHistory()">History</button>
+      <button class="btn" onclick="exportHistory()">Export</button>
       <button class="btn" onclick="clearAnswer()">Clear</button>
     </div>
   </div>
@@ -803,8 +804,11 @@
     const STOP_COMMANDS = ["stop listening", "pause listening", "stop mic", "stop"];
     const END_COMMANDS = ["answer now", "that's it", "done", "go ahead"];
 
-    const SELF_READ_WINDOW_MS = 35000;
-    const SELF_READ_SIMILARITY_THRESHOLD = 0.80;
+    // Self-read filter — catches you reading the answer aloud
+    // Lower threshold = more aggressive filtering
+    // Longer window = protects longer after answer arrives
+    const SELF_READ_WINDOW_MS = 60000;
+    const SELF_READ_SIMILARITY_THRESHOLD = 0.55;
 
     const QUESTION_MERGE_WINDOW_MS = 4200;
     const MAX_PENDING_QUESTION_MS = 20000;
@@ -1254,32 +1258,91 @@
       return { ignore: false, similarity, recent };
     }
 
+    function exportHistory() {
+      if (!qaHistory.length) {
+        alert("No history to export yet.");
+        return;
+      }
+
+      const lines = [];
+      lines.push("AMBIENT AI — INTERVIEW HISTORY EXPORT");
+      lines.push("Exported: " + new Date().toLocaleString());
+      lines.push("Total Q&As: " + qaHistory.length);
+      lines.push("=".repeat(60));
+      lines.push("");
+
+      qaHistory.forEach((item, i) => {
+        lines.push(`Q${i + 1} [${item.type || "General"}] — ${item.timestamp || ""}`);
+        lines.push("-".repeat(40));
+        lines.push("QUESTION:");
+        lines.push(item.question || "—");
+        lines.push("");
+        lines.push("ANSWER:");
+        lines.push(item.answer || "—");
+        lines.push("");
+        lines.push("=".repeat(60));
+        lines.push("");
+      });
+
+      const text = lines.join("\n");
+
+      // Try download first, fall back to clipboard
+      try {
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "interview-history-" + Date.now() + ".txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Mobile fallback — copy to clipboard
+        navigator.clipboard.writeText(text).then(() => {
+          alert("History copied to clipboard! (" + qaHistory.length + " Q&As)\nPaste into Notes or email.");
+        }).catch(() => {
+          alert("Export failed. Try using the History panel to copy individual answers.");
+        });
+      }
+    }
+
     function decideWhetherToAnswer(transcript) {
       if (settings.listenMode !== "continuous") {
         return { action: "accept", reason: "ask-once mode" };
       }
 
       const ignoreCheck = ignoreIfMatchesLastAnswer(transcript);
-
       if (ignoreCheck.ignore) {
-        return {
-          action: "ignore",
-          reason: `Matched recent answer (similarity ${ignoreCheck.similarity.toFixed(2)})`
-        };
+        return { action: "ignore", reason: `Matched recent answer (similarity ${ignoreCheck.similarity.toFixed(2)})` };
+      }
+
+      // Extra check: if transcript contains a long run of words from the last answer
+      // This catches reading the answer aloud even when overall similarity is low
+      if (lastAnswerText && lastAnswerAt) {
+        const ageMs = Date.now() - lastAnswerAt;
+        if (ageMs <= SELF_READ_WINDOW_MS) {
+          const answerWords = tokenize(lastAnswerText);
+          const transcriptWords = tokenize(transcript);
+          // Check if any 6-word sequence from transcript appears in answer
+          for (let i = 0; i <= transcriptWords.length - 6; i++) {
+            const chunk = transcriptWords.slice(i, i + 6).join(" ");
+            if (answerWords.join(" ").includes(chunk)) {
+              return { action: "ignore", reason: "Phrase overlap with recent answer detected" };
+            }
+          }
+        }
       }
 
       if (looksLikeNewQuestion(transcript)) {
         return { action: "accept", reason: "looks like new question" };
       }
 
-      if (ignoreCheck.similarity < 0.45) {
+      if (ignoreCheck.similarity < 0.35) {
         return { action: "accept", reason: "low similarity to last answer" };
       }
 
-      return {
-        action: "ignore",
-        reason: `Possible repeat / unclear follow-up (similarity ${ignoreCheck.similarity.toFixed(2)})`
-      };
+      return { action: "ignore", reason: `Possible repeat / self-read (similarity ${ignoreCheck.similarity.toFixed(2)})` };
     }
 
     function mergeQuestionParts(existingText, nextText) {
@@ -1339,57 +1402,31 @@ function appendToPendingQuestion(text) {
       const resume = settings.resumeContext ? `Candidate background:\n${settings.resumeContext}\n\n` : "";
       const extra = settings.customStyle ? `Extra preferences:\n${settings.customStyle}\n\n` : "";
       const answerModeBlock = settings.answerMode === "compact"
-        ? "Answer length: concise and interview-ready. 3-5 sentences for concepts, short code snippet for coding, single key tradeoff for design."
-        : "Answer length: go deep. Full explanation, working code where relevant, tradeoffs, edge cases, real-world debugging angle. Do NOT truncate — complete the full answer.";
+        ? "Answer length: concise. 3-5 sentences for concepts, short snippet for coding, one key tradeoff for design."
+        : "Answer length: go deep. Full explanation, working code, tradeoffs, edge cases, debugging angle. Do NOT truncate.";
 
-      return `You are helping a senior Android engineer ace interviews for two specific roles at a Palo Alto automotive tech company. Answer every question as if you ARE that engineer — speak in first person, natural and confident, like you've actually built this stuff.
+      return `You are helping a senior Android engineer ace interviews for two AAOS roles at a Palo Alto automotive company. Answer as if you ARE that engineer — first person, natural, confident, like you've shipped this stuff.
 
-CRITICAL TONE RULES:
-- Sound like a real senior engineer talking to another engineer. Use "I", "we", "in my experience", "what I'd do here", "the tricky part is".
-- NEVER start with "Certainly!", "Great question!", "Absolutely!", "Sure!". Just answer directly.
-- No robotic structure like "Step 1: ... Step 2: ...". Talk like a whiteboard session.
-- For behavioral: situation → what I did → outcome. Specific, human, confident. Like you lived it.
-- For technical: explain the mechanism deeply. Don't just say "use Binder" — explain the proxy/stub, transaction, threading model, why it matters.
-- For coding: write real, working Kotlin (or C++/Java if asked). Short inline comments. Mention complexity naturally at the end.
-- For design questions like "design an HVAC applet": go layer by layer — UI → ViewModel → Repository → CarPropertyManager → VHAL → build/permissions. Show actual working code for the key parts. Do not stop early.
+TONE: No "Certainly!", "Great question!", "Absolutely!". Just answer. Sound like a senior staff engineer at a whiteboard.
 
-===== TARGET ROLES =====
-POSITION 1: Full-Stack Engineer — Embedded Physical Applets (AAOS) — Palo Alto, CA
-- Kotlin/Java for applets and Android system services; C++ via JNI for native components
-- Android Framework: AIDL, Binder IPC, System Services, HAL, JNI, NDK
-- CarService and Car API: CarPropertyManager, ICarService, CarPropertyEvent, Car.createCar()
-- VHAL: property types, area IDs, subscription model, OnChangeListener, error handling
-- AOSP customization, AAOS end-to-end architecture
-- In-vehicle applets: HVAC, seat control, vehicle status, camera, media, connectivity
-- Inter-module IPC: AIDL, event bus, CarPropertyManager
-- HMI/UI layer integration, real-time automotive-grade responsiveness
+CORRECT AAOS PATTERNS:
+- HVAC/SEAT: Car.createCar(context) → CarPropertyManager via Car.PROPERTY_SERVICE. Never invent custom AIDL for HVAC/SEAT.
+- Area IDs: VehicleAreaSeat.ROW_1_LEFT (driver), ROW_1_RIGHT (passenger). Always explicit, never raw ints.
+- Subscriptions: registerCallback(callback, propertyId, SENSOR_RATE_ONCHANGE). Always implement both onChangeEvent AND onErrorEvent.
+- Check CarPropertyValue.getStatus() == STATUS_AVAILABLE before using value.
+- Car lifecycle: CarServiceLifecycleListener for reconnection. Disconnect in onDestroy.
+- Modern Kotlin: StateFlow + coroutines. Not LiveData.
+- Permissions: android.car.permission.CAR_HVAC, CONTROL_CAR_CLIMATE, CONTROL_CAR_SEATS. System/privileged for writes on real OEM builds.
+- VHAL properties: HVAC_TEMPERATURE_SET, HVAC_FAN_SPEED, HVAC_FAN_DIRECTION, HVAC_POWER_ON, HVAC_AC_ON, HVAC_DEFROSTER, SEAT_FORE_AFT_POS, SEAT_BACKREST_ANGLE, SEAT_HEIGHT_POS, SEAT_LUMBAR_FORE_AFT_POS, SEAT_MEMORY_SELECT.
+- Build: Android.bp for Soong, android_app module, PRODUCT_PACKAGES in product.mk, compileOnly android.car.jar in Android Studio.
+- SELinux: every new applet needs type in .te, domain transition, file_contexts. Check avc denials: logcat -b all | grep avc.
+- Debugging: dumpsys carservice, adb shell cmd car_service get-property <propId> <areaId>, lshal, perfetto/systrace.
 
-POSITION 2: Android Developer — Physical App Configuration / DPD Integration — Palo Alto, CA
-- AOSP/AAOS build: Soong, Blueprint, Android.bp, device.mk, product.mk
-- AOSP repo tool, manifest management, branch merges
-- Product config: system/vendor/product partitions, feature flags, system properties, permissions
-- DPD integration: config XMLs, hardware variant mappings, feature toggles, sensor additions
-- Resource overlays, device tree structures, build variants
-- Validation: boot testing, ADB, logcat, systrace, Python/Bash automation
-===== END ROLES =====
-
-Full Android Automotive technical knowledge:
-- CORRECT HVAC/SEAT pattern: Car.createCar(context) → car.getCarManager(Car.PROPERTY_SERVICE) as CarPropertyManager. Do NOT create custom AIDL for HVAC/SEAT — CarPropertyManager IS the IPC layer.
-- VHAL properties: VehiclePropertyIds.HVAC_TEMPERATURE_SET, HVAC_FAN_SPEED, HVAC_FAN_DIRECTION, HVAC_POWER_ON, HVAC_AC_ON, HVAC_DEFROSTER, HVAC_SEAT_TEMPERATURE, HVAC_SEAT_VENTILATION. Seat: SEAT_FORE_AFT_POS, SEAT_BACKREST_ANGLE, SEAT_HEIGHT_POS, SEAT_LUMBAR_FORE_AFT_POS, SEAT_MEMORY_SELECT, SEAT_MEMORY_SET.
-- Area IDs: VehicleAreaSeat.ROW_1_LEFT (driver), ROW_1_RIGHT (passenger), ROW_2_LEFT, ROW_2_RIGHT. Always use correct area ID — never pass raw ints.
-- CarPropertyManager.registerCallback(callback, propertyId, SENSOR_RATE_ONCHANGE) for real-time updates. Must implement onChangeEvent AND onErrorEvent.
-- CarPropertyValue<T>: getValue(), getAreaId(), getTimestamp(), getStatus() — check status before using value.
-- Lifecycle: connect Car in onCreate/onStart, disconnect in onDestroy. Handle Car.CarServiceLifecycleListener for reconnection.
-- Modern Kotlin pattern: StateFlow + coroutines, not LiveData. Repository wraps CarPropertyManager. ViewModel exposes StateFlow to UI.
-- AOSP build: Android.bp for Soong, cc_library for JNI, android_app for applets, java_library for shared modules. PRODUCT_PACKAGES in product.mk to include applets.
-- SELinux: every new service/applet needs a type in te file, domain transition, and file_contexts entry. Check avc denials with logcat -b all | grep avc.
-- Binder IPC: proxy/stub generated from AIDL, oneway for fire-and-forget, DeathRecipient for crash recovery, thread pool sizing in manifest.
-- CarService internals: ICarImpl → CarPropertyService → VehicleHal → IVehicle (AIDL HAL, Android 13+). Property requests go through permission check in CarPropertyService before reaching HAL.
-- HMI: Car App Library for templates, CarAppService extends Session extends Screen. DisplayAreaOrganizer for multi-display.
-- Debugging: dumpsys carservice, adb shell cmd car_service get-property <propId> <areaId>, lshal for HAL status, perfetto/systrace for jank, adb shell getprop for system properties.
+TARGET ROLES:
+1. Full-Stack Engineer — Embedded Physical Applets (AAOS): Kotlin/Java applets, C++ JNI, AIDL/Binder, CarService/Car API, VHAL, AOSP customization, HMI integration.
+2. Android Developer — DPD Integration: AOSP build system (Soong/Blueprint/Android.bp), DPD config XMLs, partitions, feature flags, overlays, boot validation, ADB/logcat/systrace.
 
 ${answerModeBlock}
-
 ${resume}${extra}`;
     }
 
@@ -1424,7 +1461,6 @@ ${resume}${extra}`;
           stream: true
         };
 
-        // gpt-5.4 family uses max_completion_tokens; gpt-4o uses max_tokens
         if (selectedModel.startsWith("gpt-5")) {
           payload.max_completion_tokens = maxTokens;
         } else {
