@@ -276,17 +276,29 @@
       border-radius: 6px;
       background: #1c2740;
       border: 1px solid var(--border);
+      color: #7da2ff;
     }
 
     .answer-text pre {
       margin: 10px 0 14px;
-      padding: 10px;
+      padding: 12px 14px;
       border-radius: 10px;
-      background: #0b1220;
-      border: 1px solid var(--border);
+      background: #080f1c;
+      border: 1px solid #1e2e4a;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       white-space: pre;
+    }
+
+    .answer-text pre code {
       font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      color: #a8c4ff;
+      line-height: 1.6;
+    }
       font-size: 11px;
       line-height: 1.45;
       color: #eaf2ff;
@@ -588,29 +600,21 @@
       -webkit-appearance: none;
     }
 
-    .type-bar input:focus {
-      border-color: var(--accent);
-    }
-
-    .type-bar input::placeholder {
-      color: var(--muted2);
-    }
+    .type-bar input:focus { border-color: var(--accent); }
+    .type-bar input::placeholder { color: var(--muted2); }
 
     .type-send {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       border-radius: 10px;
-      border: 1px solid var(--border);
+      border: none;
       background: var(--accent);
       color: #fff;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
 
-    .type-send:active { opacity: 0.8; }
+    .type-send:active { opacity: 0.75; }
 
     @media (min-width: 431px) {
       .title h1 { font-size: 18px; }
@@ -637,7 +641,7 @@
       <label class="label" for="modelSelect">Answer model</label>
       <select id="modelSelect">
         <option value="gpt-4o-mini">gpt-4o-mini (fast)</option>
-        <option value="gpt-4o" selected>gpt-4o (recommended)</option>
+        <option value="gpt-4o" selected>gpt-4o (best)</option>
       </select>
 
       <label class="label" for="transcribeModelSelect">Transcription model</label>
@@ -740,12 +744,11 @@
 
   <button class="resume-btn hidden" id="resumeBtn" onclick="resumeListening()">Resume listening</button>
 
-  <div class="type-bar" id="typeBar">
-    <input type="text" id="typeInput" placeholder="Or type a question here…" autocomplete="off" autocorrect="off" spellcheck="false" />
-    <button class="type-send" id="typeSend" onclick="sendTyped()">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"/>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  <div class="type-bar">
+    <input type="text" id="typeInput" placeholder="Type a question and press Enter…" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="type-send" onclick="sendTyped()">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
       </svg>
     </button>
   </div>
@@ -837,6 +840,8 @@
     renderHistory();
     if (settings.apiKey) hide("overlay");
 
+    function byId(id) { return document.getElementById(id); }
+
     function sendTyped() {
       const input = byId("typeInput");
       const q = input.value.trim();
@@ -846,11 +851,12 @@
       ask(q);
     }
 
-    byId("typeInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); sendTyped(); }
+    document.addEventListener("DOMContentLoaded", () => {
+      const inp = byId("typeInput");
+      if (inp) inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); sendTyped(); }
+      });
     });
-
-    function byId(id) { return document.getElementById(id); }
     function hide(id) { byId(id).classList.add("hidden"); }
     function show(id) { byId(id).classList.remove("hidden"); }
 
@@ -1189,18 +1195,12 @@
       fd.append("model", settings.transcribeModel);
       fd.append("language", "en");
       const TRANSCRIBE_HINT = "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate.";
-
-      fd.append(
-        "prompt",
-        TRANSCRIBE_HINT
-      );
+      fd.append("prompt", TRANSCRIBE_HINT);
       fd.append("response_format", "json");
 
       const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
-        headers: {
-          "Authorization": "Bearer " + settings.apiKey
-        },
+        headers: { "Authorization": "Bearer " + settings.apiKey },
         body: fd
       });
 
@@ -1208,11 +1208,7 @@
       if (!res.ok || data.error) throw new Error(data.error?.message || ("HTTP " + res.status));
 
       let text = (data.text || "").trim();
-
-      // Strip if Whisper echoed back the hint prompt verbatim
-      if (text === TRANSCRIBE_HINT || text.startsWith("Transcribe in English.")) {
-        text = "";
-      }
+      if (text === TRANSCRIBE_HINT || text.startsWith("Transcribe in English.")) text = "";
 
       return { text, speaker: null };
     }
@@ -1366,72 +1362,60 @@ function appendToPendingQuestion(text) {
 }
 
     function buildSystemPrompt() {
-      const resume = settings.resumeContext
-        ? `Candidate background:\n${settings.resumeContext}\n\n`
-        : "";
+      const resume = settings.resumeContext ? `Candidate background:\n${settings.resumeContext}\n\n` : "";
+      const extra = settings.customStyle ? `Extra preferences:\n${settings.customStyle}\n\n` : "";
+      const answerModeBlock = settings.answerMode === "compact"
+        ? "Answer length: concise and interview-ready. 3-5 sentences for concepts, short code snippet for coding, single key tradeoff for design."
+        : "Answer length: go deep. Full explanation, working code where relevant, tradeoffs, edge cases, real-world debugging angle. Do NOT truncate.";
 
-      const extra = settings.customStyle
-        ? `Extra preferences:\n${settings.customStyle}\n\n`
-        : "";
+      return `You are helping a senior Android engineer ace interviews for two specific roles at a Palo Alto automotive tech company. Answer every question as if you ARE that engineer — speak in first person, natural and confident, like you've actually built this stuff.
 
-      const answerModeBlock =
-        settings.answerMode === "compact"
-          ? `Answer length: keep it concise and interview-ready. 3-5 sentences for concepts, short Kotlin snippet for coding, single key tradeoff for design.`
-          : `Answer length: go deep. Full explanation, code where relevant, tradeoffs, edge cases, real-world debugging angle.`;
-
-      return `You are helping a senior Android engineer ace interviews for two specific roles at a Palo Alto automotive tech company. Answer every question as if you're that engineer — speak in first person, natural and confident, like you've actually built this stuff.
+CRITICAL TONE RULES:
+- Sound like a real senior engineer talking to another engineer. Use "I", "we", "in my experience", "what I'd do here", "the tricky part is".
+- NEVER start with "Certainly!", "Great question!", "Absolutely!", "Sure!". Just answer directly.
+- No robotic structure like "Step 1: ... Step 2: ...". Tell it like a story or a whiteboard session.
+- For behavioral: situation → what I did → outcome. Specific, human, confident. Like you lived it.
+- For technical: explain the mechanism, not just the name. Don't just say "use Binder" — explain the proxy/stub, the transaction, the threading model, why it matters.
+- For coding: write real, working Kotlin (or C++/Java if asked). Short inline comments. Mention time/space complexity naturally at the end, not as a header.
+- For design questions like "design an HVAC applet": go layer by layer — UI → domain → CarService → VHAL → build/permissions. Show actual code for the key parts. Don't stop early.
 
 ===== TARGET ROLES =====
-POSITION 1: Full-Stack Engineer — Embedded Physical Applets (AAOS)
-- Kotlin/Java for applets and Android system services
-- C++ via JNI for native/hardware components
-- Android Framework internals: AIDL, Binder IPC, System Services
-- CarService, Car API, VHAL integration
-- AOSP customization, AAOS architecture
-- Build in-vehicle applets: HVAC, seat control, media, camera, connectivity
-- Inter-module IPC: AIDL, event bus, CarPropertyManager
+POSITION 1: Full-Stack Engineer — Embedded Physical Applets (AAOS) — Palo Alto, CA
+- Kotlin/Java for applets and Android system services; C++ via JNI for native components
+- Android Framework: AIDL, Binder IPC, System Services, HAL, JNI, NDK
+- CarService and Car API layers: CarPropertyManager, ICarService, CarPropertyEvent
+- VHAL integration: property types, area IDs, subscription model, OnChangeListener
+- AOSP customization, AAOS architecture end-to-end
+- Build in-vehicle applets: HVAC, seat control, vehicle status, camera, media, connectivity
+- Inter-module IPC: AIDL interfaces, event bus, CarPropertyManager
 - Work between Framework layer and HMI/UI layer
-- Real-time responsiveness for automotive-grade environments
+- Real-time responsiveness: automotive-grade, low-latency, fault-tolerant
 
-POSITION 2: Android Developer — Physical App Configuration / DPD Integration
-- AOSP/AAOS build system: Soong, Blueprint, Android.bp, device.mk, product.mk
-- AOSP repo tool, manifest management, branch merges
-- Product configs: system/vendor/product partitions, feature flags, system properties, permissions
-- DPD (Device/Platform Definition) integration: config XMLs, hardware variant mappings, feature toggles
-- Resource overlays, device tree structures, build variants
+POSITION 2: Android Developer — Physical App Configuration / DPD Integration — Palo Alto, CA
+- AOSP/AAOS build system: Soong, Blueprint, Android.bp, device.mk, product.mk, Makefiles
+- AOSP repo tool, manifest management, branch merges, conflict resolution
+- Product config: system/vendor/product partitions, feature flags, system properties, permissions
+- DPD (Device/Platform Definition): config XMLs, hardware variant mappings, feature toggles, sensor additions
+- Resource overlays, device tree structures, build variants, flavor definitions
 - Trace config → framework → applet flow
-- Validation: boot testing, logcat, ADB, system tracing, Python/Bash automation
+- Validation: boot testing, ADB, logcat, system tracing, Python/Bash automation
 - Bridge between platform config team and applet/framework engineers
 ===== END ROLES =====
 
-Tone and style rules — this is critical:
-- Sound like a real senior engineer, not an AI. Use "I", "we", "in my experience", "what I'd do here".
-- No robotic openers like "Certainly!", "Great question!", "Absolutely!". Just answer.
-- For behavioral questions: tell it like a story. Situation → what I did → outcome. Specific, human, confident.
-- For technical questions: explain the mechanism, not just the definition. If it's AIDL, explain the Binder transaction, the proxy/stub, the threading model.
-- For coding questions: write clean Kotlin (or C++/Java if asked), add short inline comments, mention time/space complexity naturally.
-- For AAOS/automotive questions: go deep. VHAL property flow, CarService → HAL → HIDL/AIDL HAL → kernel driver. SELinux policy for automotive. CarPropertyManager vs direct VHAL. HMI integration patterns. Real debugging stories with logcat and systrace.
-- For DPD/build questions: Soong vs Make, Android.bp syntax, how overlays work, partition boundaries, how system properties flow from device.mk to runtime.
-- If the question is vague or mis-transcribed, pick the most likely technical interpretation for these roles and answer that.
-- Never say "I don't have access to" or "as an AI". Just answer like you know it.
+Full Android Automotive technical depth to draw from:
+VHAL: VehicleProperty types (INT32, FLOAT, BYTES, MIXED), area IDs (SEAT_1_LEFT etc), CarPropertyManager.getProperty / setProperty / registerCallback, OnChangeListener vs OnErrorListener, HIDL HAL (hardware/interfaces/automotive/vehicle) vs AIDL HAL (transition in Android 13+), IVehicle.set/get, StatusCode handling
+CarService: ICarImpl registered in SystemServer, CarPropertyService → VehicleHal → IVehicle, CarAudioService, CarMediaService, CarUserService, CarOccupantZoneManager, binder death handling
+Binder IPC: Proxy/Stub pattern, oneway transactions, IBinder.DeathRecipient, AIDL interface versioning (@JavaPassthrough, @nullable, in/out/inout), threading model (Binder thread pool)
+AOSP build: repo sync, lunch combo, m/mm/mmm/mma, Android.bp vs Android.mk migration, Soong cc_library/android_app/java_library modules, product_packages, PRODUCT_COPY_FILES
+Partitions & VNDK: system/vendor/product/odm boundaries, vndk_available, vendor_available, why VNDK matters for OTA stability
+SELinux automotive: avc denials in logcat, audit2allow, type enforcement files, domain transitions for CarService and HAL processes, neverallow rules
+HMI integration: Car App Library (TemplateHost), DisplayAreaOrganizer, multi-display AAOS, CarAppService, Session/Screen lifecycle
+Applet architecture patterns: CarPropertyManager abstraction layer, StateFlow for property updates, ViewModel + Repository, zoned properties per seat/zone, error recovery, availability states
+Debugging tools: systrace/perfetto for jank, dumpsys carservice, dumpsys car_service, adb shell cmd car_service, lshal, vhal_prop_config, logcat with CarLog tags
+OTA: A/B updates, update_engine, partition snapshots in automotive context
+Kotlin patterns in AAOS: coroutines for async property reads, Flow for continuous updates, extension functions over CarPropertyManager, sealed classes for VehicleProperty states
 
 ${answerModeBlock}
-
-Coding rules:
-- Prefer Kotlin. Use C++ only if the question is about JNI/NDK/native.
-- Inline comments explaining each meaningful step.
-- For AAOS coding: use real APIs — CarPropertyManager, ICarService, VehicleHal, AIDL interfaces.
-
-Full Android Automotive knowledge to draw from:
-- VHAL (Vehicle HAL): property types (INT32, FLOAT, BYTES), subscription model, CarPropertyManager API, OnChangeListener, HIDL vs AIDL HAL transition
-- CarService: ICarImpl, CarPropertyService, CarAudioService, CarMediaService, CarUserService — all as system services registered in SystemServer
-- Binder IPC: transaction threading, oneway vs synchronous, IBinder.DeathRecipient, AIDL interface versioning
-- AOSP build: repo sync, lunch target, m/mm/mmm, Android.bp vs Android.mk migration, Soong modules, product_packages
-- Partitions: system, vendor, product, odm — and why the vendor interface (VNDK) matters for OTA
-- SELinux in automotive: avc denials, audit2allow, domain transitions for CarService and HAL processes
-- HMI integration: TemplateHost for car app library, DisplayAreaOrganizer, CarOccupantZoneManager for multi-display AAOS
-- OTA and A/B updates in automotive context
-- Debugging: systrace for jank, perfetto, dumpsys carservice, adb shell vhal_prop_config, lshal
 
 ${resume}${extra}`;
     }
@@ -1455,25 +1439,20 @@ ${resume}${extra}`;
       scrollToLatest();
 
       try {
-        const maxCompletionTokens = settings.answerMode === "compact" ? 260 : 700;
+        const maxCompletionTokens = settings.answerMode === "compact" ? 600 : 3000;
 
-        const selectedModel = chooseModelForQuestion(question);
+        const selectedModel = settings.model || "gpt-4o";
 
         const payload = {
           model: selectedModel,
+          max_tokens: maxCompletionTokens,
+          temperature: 0.25,
           messages: [
             { role: "system", content: buildSystemPrompt() },
             ...chatHistory
           ],
           stream: true
         };
-
-        if (selectedModel.startsWith("gpt-5")) {
-          payload.max_completion_tokens = maxCompletionTokens;
-        } else {
-          payload.max_tokens = maxCompletionTokens;
-          payload.temperature = 0.2;
-        }
 
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -1671,20 +1650,71 @@ ${resume}${extra}`;
       return settings.model || "gpt-4o";
     }
 
-    function formatAnswer(text) {
+    function formatAnswer(raw) {
+      // 1. Extract code blocks before escaping so they're preserved
+      const codeBlocks = [];
+      let text = raw.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+        const idx = codeBlocks.length;
+        codeBlocks.push(`<pre><code class="lang-${lang || 'text'}">${escCode(code.trim())}</code></pre>`);
+        return `%%CODEBLOCK_${idx}%%`;
+      });
+
+      // 2. Escape HTML in remaining text
       text = esc(text);
 
-      text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => `<pre>${code.trim()}</pre>`);
-      text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
-      text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      // 3. Inline code
+      text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
 
-      const parts = text
-        .split(/\n{2,}/)
-        .map(p => p.trim())
-        .filter(Boolean)
-        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`);
+      // 4. Bold and italic
+      text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
 
-      return parts.join("") || "<p>No response.</p>";
+      // 5. Headings (### ## #)
+      text = text.replace(/^### (.+)$/gm, '<h3 style="font-size:14px;font-weight:800;margin:16px 0 6px;color:#aac8ff;">$1</h3>');
+      text = text.replace(/^## (.+)$/gm,  '<h2 style="font-size:15px;font-weight:800;margin:18px 0 7px;color:#c8daff;">$1</h2>');
+      text = text.replace(/^# (.+)$/gm,   '<h2 style="font-size:16px;font-weight:800;margin:18px 0 8px;color:#dce9ff;border-bottom:1px solid #2b3858;padding-bottom:4px;">$1</h2>');
+
+      // 6. Horizontal rule
+      text = text.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2b3858;margin:14px 0;">');
+
+      // 7. Numbered lists — group consecutive items
+      text = text.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
+        const items = block.trim().split('\n').map(line =>
+          `<li style="margin-bottom:6px;">${line.replace(/^\d+\.\s*/, '')}</li>`
+        ).join('');
+        return `<ol style="margin:8px 0 12px 20px;padding:0;">${items}</ol>`;
+      });
+
+      // 8. Bullet lists — group consecutive items
+      text = text.replace(/((?:^[-*] .+\n?)+)/gm, (block) => {
+        const items = block.trim().split('\n').map(line =>
+          `<li style="margin-bottom:6px;">${line.replace(/^[-*]\s*/, '')}</li>`
+        ).join('');
+        return `<ul style="margin:8px 0 12px 20px;padding:0;">${items}</ul>`;
+      });
+
+      // 9. Paragraphs — split on double newlines, skip if already block element
+      const blockTags = /^<(h[1-6]|ul|ol|hr|pre|div)/;
+      const paras = text.split(/\n{2,}/).map(p => {
+        p = p.trim().replace(/\n/g, '<br>');
+        if (!p) return '';
+        if (blockTags.test(p)) return p;
+        return `<p style="margin:0 0 10px;">${p}</p>`;
+      }).filter(Boolean);
+
+      let html = paras.join('');
+
+      // 10. Restore code blocks
+      codeBlocks.forEach((block, idx) => {
+        html = html.replace(`%%CODEBLOCK_${idx}%%`, block);
+      });
+
+      return html || '<p>No response.</p>';
+    }
+
+    function escCode(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     function stripMarkdownForSpeech(text) {
