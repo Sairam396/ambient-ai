@@ -565,6 +565,53 @@
       cursor: pointer;
     }
 
+    .type-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--panel-3);
+      border-top: 1px solid var(--border);
+    }
+
+    .type-bar input {
+      flex: 1;
+      padding: 10px 13px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-family: Inter, sans-serif;
+      font-size: 14px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .type-bar input:focus {
+      border-color: var(--accent);
+    }
+
+    .type-bar input::placeholder {
+      color: var(--muted2);
+    }
+
+    .type-send {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .type-send:active { opacity: 0.8; }
+
     @media (min-width: 431px) {
       .title h1 { font-size: 18px; }
       .title p { font-size: 12px; }
@@ -589,9 +636,8 @@
 
       <label class="label" for="modelSelect">Answer model</label>
       <select id="modelSelect">
-        <option value="gpt-5.4-mini">gpt-5.4-mini</option>
-        <option value="gpt-5.4">gpt-5.4</option>
-        <option value="gpt-4o">gpt-4o</option>
+        <option value="gpt-4o-mini">gpt-4o-mini (fast)</option>
+        <option value="gpt-4o" selected>gpt-4o (recommended)</option>
       </select>
 
       <label class="label" for="transcribeModelSelect">Transcription model</label>
@@ -694,6 +740,16 @@
 
   <button class="resume-btn hidden" id="resumeBtn" onclick="resumeListening()">Resume listening</button>
 
+  <div class="type-bar" id="typeBar">
+    <input type="text" id="typeInput" placeholder="Or type a question here…" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="type-send" id="typeSend" onclick="sendTyped()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+
   <div class="bottom">
     <button class="mic-btn" id="micBtn" onclick="toggleMic()">
       <svg viewBox="0 0 24 24">
@@ -722,7 +778,7 @@
   <script>
     let settings = {
       apiKey: localStorage.getItem("aai_key") || "",
-      model: localStorage.getItem("aai_model") || "gpt-5.4-mini",
+      model: localStorage.getItem("aai_model") || "gpt-4o",
       transcribeModel: localStorage.getItem("aai_transcribe_model") || "gpt-4o-mini-transcribe",
       answerMode: localStorage.getItem("aai_answer_mode") || "compact",
       listenMode: localStorage.getItem("aai_listen_mode") || "ask_once",
@@ -761,10 +817,10 @@
     let pendingQuestionTimer = null;
     let pendingQuestionStartedAt = 0;
 
-    const VOICE_THRESHOLD = 0.025;
-    const SILENCE_AFTER_SPEECH_MS = 1800;
-    const MIN_SPEECH_MS = 700;
-    const MAX_SEGMENT_MS = 25000;
+    const VOICE_THRESHOLD = 0.020;
+    const SILENCE_AFTER_SPEECH_MS = 2200;
+    const MIN_SPEECH_MS = 400;
+    const MAX_SEGMENT_MS = 90000;
 
     const WAKE_PHRASE = "hey assistant";
     const STOP_COMMANDS = ["stop listening", "pause listening", "stop mic", "stop"];
@@ -780,6 +836,19 @@
     refreshPills();
     renderHistory();
     if (settings.apiKey) hide("overlay");
+
+    function sendTyped() {
+      const input = byId("typeInput");
+      const q = input.value.trim();
+      if (!q) return;
+      if (!settings.apiKey) { openSettings(); return; }
+      input.value = "";
+      ask(q);
+    }
+
+    byId("typeInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); sendTyped(); }
+    });
 
     function byId(id) { return document.getElementById(id); }
     function hide(id) { byId(id).classList.add("hidden"); }
@@ -1119,9 +1188,11 @@
       fd.append("file", file);
       fd.append("model", settings.transcribeModel);
       fd.append("language", "en");
+      const TRANSCRIBE_HINT = "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate.";
+
       fd.append(
         "prompt",
-        "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate."
+        TRANSCRIBE_HINT
       );
       fd.append("response_format", "json");
 
@@ -1136,10 +1207,14 @@
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error?.message || ("HTTP " + res.status));
 
-      return {
-        text: (data.text || "").trim(),
-        speaker: null
-      };
+      let text = (data.text || "").trim();
+
+      // Strip if Whisper echoed back the hint prompt verbatim
+      if (text === TRANSCRIBE_HINT || text.startsWith("Transcribe in English.")) {
+        text = "";
+      }
+
+      return { text, speaker: null };
     }
 
     function normalizeQuestion(spoken) {
@@ -1296,42 +1371,67 @@ function appendToPendingQuestion(text) {
         : "";
 
       const extra = settings.customStyle
-        ? `Extra answer preferences:\n${settings.customStyle}\n\n`
+        ? `Extra preferences:\n${settings.customStyle}\n\n`
         : "";
 
       const answerModeBlock =
         settings.answerMode === "compact"
-          ? `Response mode: compact.
-- Keep answers short and interview-ready.
-- Behavioral/scenario answers: 4-6 bullets max.
-- Technical answers: brief mechanism + key tradeoff.
-- Coding answers: short approach, commented Kotlin code, time complexity, space complexity.
-- Avoid unnecessary detail.`
-          : `Response mode: full.
-- Give a fuller answer with structure and depth.
-- Behavioral/scenario answers: include reasoning, tradeoffs, outcome.
-- Technical answers: explain mechanism, debugging angle, tradeoffs.
-- Coding answers: approach, commented Kotlin code, time complexity, space complexity, edge cases.`;
+          ? `Answer length: keep it concise and interview-ready. 3-5 sentences for concepts, short Kotlin snippet for coding, single key tradeoff for design.`
+          : `Answer length: go deep. Full explanation, code where relevant, tradeoffs, edge cases, real-world debugging angle.`;
 
-      return `You are a senior-level interview and problem-solving assistant.
+      return `You are helping a senior Android engineer ace interviews for two specific roles at a Palo Alto automotive tech company. Answer every question as if you're that engineer — speak in first person, natural and confident, like you've actually built this stuff.
 
-Core behavior:
-- Answer any question naturally, clearly, and confidently.
-- Adapt to question type:
-  - behavioral -> authentic senior ownership, impact, collaboration
-  - scenario-based -> approach, tradeoffs, risks, resolution
-  - coding -> prefer Kotlin unless another language is requested
-  - Android / AAOS / system design -> senior-level technical depth and practical debugging insight
-  - general -> direct and clear
-- If resume/project context is provided, use it to sound relevant to the candidate's real experience.
-- If the question is ambiguous due to speech recognition issues, answer the most likely interpretation first.
-- Avoid robotic filler.
+===== TARGET ROLES =====
+POSITION 1: Full-Stack Engineer — Embedded Physical Applets (AAOS)
+- Kotlin/Java for applets and Android system services
+- C++ via JNI for native/hardware components
+- Android Framework internals: AIDL, Binder IPC, System Services
+- CarService, Car API, VHAL integration
+- AOSP customization, AAOS architecture
+- Build in-vehicle applets: HVAC, seat control, media, camera, connectivity
+- Inter-module IPC: AIDL, event bus, CarPropertyManager
+- Work between Framework layer and HMI/UI layer
+- Real-time responsiveness for automotive-grade environments
+
+POSITION 2: Android Developer — Physical App Configuration / DPD Integration
+- AOSP/AAOS build system: Soong, Blueprint, Android.bp, device.mk, product.mk
+- AOSP repo tool, manifest management, branch merges
+- Product configs: system/vendor/product partitions, feature flags, system properties, permissions
+- DPD (Device/Platform Definition) integration: config XMLs, hardware variant mappings, feature toggles
+- Resource overlays, device tree structures, build variants
+- Trace config → framework → applet flow
+- Validation: boot testing, logcat, ADB, system tracing, Python/Bash automation
+- Bridge between platform config team and applet/framework engineers
+===== END ROLES =====
+
+Tone and style rules — this is critical:
+- Sound like a real senior engineer, not an AI. Use "I", "we", "in my experience", "what I'd do here".
+- No robotic openers like "Certainly!", "Great question!", "Absolutely!". Just answer.
+- For behavioral questions: tell it like a story. Situation → what I did → outcome. Specific, human, confident.
+- For technical questions: explain the mechanism, not just the definition. If it's AIDL, explain the Binder transaction, the proxy/stub, the threading model.
+- For coding questions: write clean Kotlin (or C++/Java if asked), add short inline comments, mention time/space complexity naturally.
+- For AAOS/automotive questions: go deep. VHAL property flow, CarService → HAL → HIDL/AIDL HAL → kernel driver. SELinux policy for automotive. CarPropertyManager vs direct VHAL. HMI integration patterns. Real debugging stories with logcat and systrace.
+- For DPD/build questions: Soong vs Make, Android.bp syntax, how overlays work, partition boundaries, how system properties flow from device.mk to runtime.
+- If the question is vague or mis-transcribed, pick the most likely technical interpretation for these roles and answer that.
+- Never say "I don't have access to" or "as an AI". Just answer like you know it.
 
 ${answerModeBlock}
 
 Coding rules:
-- Add concise comments in code explaining each step.
-- Prefer interview-friendly code.
+- Prefer Kotlin. Use C++ only if the question is about JNI/NDK/native.
+- Inline comments explaining each meaningful step.
+- For AAOS coding: use real APIs — CarPropertyManager, ICarService, VehicleHal, AIDL interfaces.
+
+Full Android Automotive knowledge to draw from:
+- VHAL (Vehicle HAL): property types (INT32, FLOAT, BYTES), subscription model, CarPropertyManager API, OnChangeListener, HIDL vs AIDL HAL transition
+- CarService: ICarImpl, CarPropertyService, CarAudioService, CarMediaService, CarUserService — all as system services registered in SystemServer
+- Binder IPC: transaction threading, oneway vs synchronous, IBinder.DeathRecipient, AIDL interface versioning
+- AOSP build: repo sync, lunch target, m/mm/mmm, Android.bp vs Android.mk migration, Soong modules, product_packages
+- Partitions: system, vendor, product, odm — and why the vendor interface (VNDK) matters for OTA
+- SELinux in automotive: avc denials, audit2allow, domain transitions for CarService and HAL processes
+- HMI integration: TemplateHost for car app library, DisplayAreaOrganizer, CarOccupantZoneManager for multi-display AAOS
+- OTA and A/B updates in automotive context
+- Debugging: systrace for jank, perfetto, dumpsys carservice, adb shell vhal_prop_config, lshal
 
 ${resume}${extra}`;
     }
@@ -1568,24 +1668,8 @@ ${resume}${extra}`;
     }
 
     function chooseModelForQuestion(question) {
-  if (settings.listenMode === "continuous") {
-    return "gpt-5.4-mini";
-  }
-
-  const q = question.toLowerCase();
-
-  const hardPatterns = [
-    /aosp/, /binder/, /aidl/, /hal/, /jni/, /ndk/, /carservice/, /vhal/,
-    /android framework/, /system service/, /embedded/, /real[- ]time/,
-    /performance/, /optimization/, /concurrency/, /deadlock/, /race condition/,
-    /design/, /architecture/, /tradeoff/, /scalability/, /native/, /c\+\+/, /ipc/
-  ];
-
-  const hardMatch = hardPatterns.some((re) => re.test(q));
-  const longQuestion = q.length > 220;
-
-  return (hardMatch || longQuestion) ? "gpt-5.4" : "gpt-5.4-mini";
-}
+      return settings.model || "gpt-4o";
+    }
 
     function formatAnswer(text) {
       text = esc(text);
