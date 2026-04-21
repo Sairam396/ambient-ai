@@ -1610,24 +1610,8 @@ ${resume}${extra}`;
     }
 
     function chooseModelForQuestion(question) {
-      if (settings.listenMode === "continuous") {
-        return "gpt-5.4-mini";
-      }
-
-      const q = question.toLowerCase();
-
-      const hardPatterns = [
-        /aosp/, /binder/, /aidl/, /hal/, /jni/, /ndk/, /carservice/, /vhal/,
-        /android framework/, /system service/, /embedded/, /real[- ]time/,
-        /performance/, /optimization/, /concurrency/, /deadlock/, /race condition/,
-        /design/, /architecture/, /tradeoff/, /scalability/, /native/, /c\+\+/, /ipc/
-      ];
-
-      const hardMatch = hardPatterns.some((re) => re.test(q));
-      const longQuestion = q.length > 220;
-
-      return (hardMatch || longQuestion) ? "gpt-5.4" : "gpt-5.4-mini";
-    }
+  return settings.model;
+}
 
     function formatAnswer(text) {
       text = esc(text);
