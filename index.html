@@ -44,7 +44,7 @@
       grid-template-columns: 1fr auto auto;
       gap: 8px;
       align-items: center;
-      padding: 10px 12px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       background: var(--panel-3);
     }
@@ -52,15 +52,15 @@
     .title { min-width: 0; }
 
     .title h1 {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
       line-height: 1.1;
     }
 
     .title p {
-      margin-top: 2px;
+      margin-top: 1px;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
     }
 
     .status {
@@ -102,19 +102,19 @@
 
     .strip {
       flex-shrink: 0;
-      padding: 8px 10px;
+      padding: 6px 10px;
       border-bottom: 1px solid var(--border);
       background: #10192c;
     }
 
     .strip-top {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: nowrap;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .strip-top::-webkit-scrollbar {
@@ -125,10 +125,10 @@
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      padding: 4px 10px;
+      padding: 3px 8px;
       border: 1px solid var(--border);
       border-radius: 999px;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       color: var(--muted);
       background: var(--panel);
@@ -141,10 +141,10 @@
     }
 
     .live-text {
-      min-height: 18px;
+      min-height: 14px;
       font-family: "JetBrains Mono", monospace;
-      font-size: 12px;
-      line-height: 1.4;
+      font-size: 11px;
+      line-height: 1.35;
       color: var(--text);
       word-break: break-word;
     }
@@ -154,8 +154,8 @@
     }
 
     .meter {
-      margin-top: 6px;
-      height: 4px;
+      margin-top: 4px;
+      height: 3px;
       width: 100%;
       border-radius: 999px;
       background: #26314b;
@@ -183,7 +183,7 @@
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
       overscroll-behavior: contain;
-      padding: 10px 10px 18px;
+      padding: 6px 8px 10px;
     }
 
     .empty {
@@ -205,7 +205,7 @@
     }
 
     .card-head {
-      padding: 10px 12px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       background: var(--panel-2);
       display: flex;
@@ -256,12 +256,12 @@
     }
 
     .answer-body {
-      padding: 10px;
+      padding: 8px 10px;
     }
 
     .answer-text {
-      font-size: 17px;
-      line-height: 1.6;
+      font-size: 15px;
+      line-height: 1.5;
       color: var(--text);
       word-break: break-word;
     }
@@ -296,7 +296,7 @@
     }
 
     .meta {
-      padding: 0 10px 10px;
+      padding: 0 10px 8px;
       color: var(--muted);
       font-family: "JetBrains Mono", monospace;
       font-size: 10px;
@@ -372,14 +372,14 @@
       grid-template-columns: auto 1fr auto;
       gap: 8px;
       align-items: center;
-      padding: 10px 10px calc(10px + var(--safe-bottom));
+      padding: 8px 10px calc(8px + var(--safe-bottom));
       border-top: 1px solid var(--border);
       background: #0f1729;
     }
 
     .mic-btn {
-      width: 48px;
-      height: 48px;
+      width: 46px;
+      height: 46px;
       border-radius: 50%;
       border: 2px solid var(--border);
       background: var(--panel);
@@ -406,46 +406,61 @@
       stroke-linejoin: round;
     }
 
-    .bottom-text {
+    .question-input {
+      width: 100%;
       min-width: 0;
-    }
-
-    .bottom-text .main-text {
-      font-size: 13px;
-      font-weight: 800;
+      height: 42px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
       color: var(--text);
+      outline: none;
+      font-size: 14px;
     }
 
-    .bottom-text .sub-text {
-      margin-top: 3px;
-      font-size: 11px;
+    .question-input::placeholder {
       color: var(--muted);
-      line-height: 1.35;
     }
 
     .bottom-actions {
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-shrink: 0;
     }
 
     .btn {
-      height: 32px;
-      padding: 0 8px;
-      border-radius: 9px;
+      height: 42px;
+      padding: 0 12px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--panel);
       color: var(--text);
       font-weight: 700;
-      font-size: 11px;
+      font-size: 12px;
       cursor: pointer;
       white-space: nowrap;
+    }
+
+    .send-btn {
+      min-width: 42px;
+      padding: 0 12px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .icon-only {
+      min-width: 42px;
+      width: 42px;
+      padding: 0;
+      font-size: 16px;
     }
 
     .resume-btn {
       position: fixed;
       right: 12px;
-      bottom: calc(80px + env(safe-area-inset-bottom));
+      bottom: calc(66px + env(safe-area-inset-bottom));
       z-index: 20;
       padding: 11px 14px;
       border-radius: 999px;
@@ -459,7 +474,7 @@
     }
 
     #jumpLatestBtn {
-      bottom: calc(132px + env(safe-area-inset-bottom));
+      bottom: calc(118px + env(safe-area-inset-bottom));
       background: var(--panel);
       color: var(--text);
     }
@@ -577,12 +592,15 @@
       .title h1 { font-size: 18px; }
       .title p { font-size: 12px; }
       .status { font-size: 12px; padding: 7px 11px; }
-      .live-text { font-size: 13px; }
-      .answer-text { font-size: 18px; line-height: 1.65; }
+      .live-text { font-size: 12px; }
+      .answer-text { font-size: 17px; line-height: 1.6; }
       .question-text { font-size: 13px; }
-      .bottom { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
-      .btn { height: 34px; padding: 0 10px; font-size: 12px; }
-      .mic-btn { width: 50px; height: 50px; }
+      .bottom { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+      .btn { font-size: 12px; }
+      .mic-btn { width: 48px; height: 48px; }
+      .question-input { height: 44px; }
+      .send-btn { height: 44px; }
+      .icon-only { height: 44px; width: 44px; }
     }
   </style>
 </head>
@@ -672,7 +690,7 @@
   <div class="main">
     <div class="answer-wrap" id="answerWrap">
       <div class="empty" id="emptyState">
-        Tap the mic and ask a question.<br>
+        Type a question or tap the mic.<br>
         In continuous mode, the app tries to ignore you reading the last answer and wait for a new question.
       </div>
 
@@ -704,7 +722,7 @@
   <button class="resume-btn hidden" id="jumpLatestBtn" onclick="scrollToLatest(true)">Jump to latest</button>
 
   <div class="bottom">
-    <button class="mic-btn" id="micBtn" onclick="toggleMic()">
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Start or stop microphone">
       <svg viewBox="0 0 24 24">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -713,16 +731,19 @@
       </svg>
     </button>
 
-    <div class="bottom-text">
-      <div class="main-text" id="bottomMain">Tap mic to start</div>
-      <div class="sub-text" id="bottomSub">Continuous mode can auto-answer follow-ups.</div>
-    </div>
+    <input
+      id="questionInput"
+      class="question-input"
+      type="text"
+      placeholder="Type a question and press Enter..."
+      autocomplete="off"
+    />
 
     <div class="bottom-actions">
-      <button class="btn" id="followBtn" onclick="toggleAutoFollow()">Follow: On</button>
-      <button class="btn" onclick="scrollToLatest(true)">Latest</button>
-      <button class="btn" onclick="toggleHistory()">History</button>
-      <button class="btn" onclick="clearAnswer()">Clear</button>
+      <button class="btn send-btn" id="sendBtn" onclick="submitTypedQuestion()" title="Send">➤</button>
+      <button class="btn icon-only" onclick="toggleHistory()" title="History">🕘</button>
+      <button class="btn icon-only" onclick="clearAnswer()" title="Clear">✕</button>
+      <button class="btn icon-only" onclick="exportData()" title="Export">📤</button>
     </div>
   </div>
 
@@ -792,8 +813,8 @@
     if (settings.apiKey) hide("overlay");
 
     function byId(id) { return document.getElementById(id); }
-    function hide(id) { byId(id).classList.add("hidden"); }
-    function show(id) { byId(id).classList.remove("hidden"); }
+    function hide(id) { const el = byId(id); if (el) el.classList.add("hidden"); }
+    function show(id) { const el = byId(id); if (el) el.classList.remove("hidden"); }
 
     function restoreSettings() {
       byId("keyInput").value = settings.apiKey;
@@ -861,8 +882,18 @@
     }
 
     function setBottom(main, sub) {
-      byId("bottomMain").textContent = main;
-      byId("bottomSub").textContent = sub;
+      const input = byId("questionInput");
+      if (!input) return;
+
+      if (thinking) {
+        input.placeholder = "Generating answer...";
+      } else if (active) {
+        input.placeholder = "Listening... you can also type here";
+      } else if (main) {
+        input.placeholder = main;
+      } else {
+        input.placeholder = "Type a question and press Enter...";
+      }
     }
 
     function setLive(text, muted = false) {
@@ -900,7 +931,7 @@
 
         active = true;
         byId("micBtn").classList.add("on");
-        byId("resumeBtn").classList.add("hidden");
+        hide("resumeBtn");
         setStatus("on", "Listening");
         setBottom("Listening...", "Ask your question and pause briefly.");
         setLive("Listening...", true);
@@ -918,7 +949,7 @@
       isSpeaking = false;
       isSegmentRecording = false;
       audioChunks = [];
-      
+
       clearPendingQuestion();
 
       if (monitorRaf) {
@@ -1347,6 +1378,8 @@ ${resume}${extra}`;
     }
 
     async function ask(question) {
+      if (!question || !question.trim()) return;
+
       thinking = true;
       setStatus("thinking", "Thinking");
       setBottom("Generating answer...", "Streaming answer as it arrives.");
@@ -1366,7 +1399,6 @@ ${resume}${extra}`;
 
       try {
         const maxCompletionTokens = settings.answerMode === "compact" ? 260 : 700;
-
         const selectedModel = chooseModelForQuestion(question);
 
         const payload = {
@@ -1477,7 +1509,7 @@ ${resume}${extra}`;
         setStatus("", "Answer ready");
         setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
         setLive("Answer ready. Mic paused.", true);
-        byId("resumeBtn").classList.remove("hidden");
+        show("resumeBtn");
       }
     }
 
@@ -1503,7 +1535,7 @@ ${resume}${extra}`;
           setStatus("", "Answer ready");
           setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
           setLive("Answer ready. Mic paused.", true);
-          byId("resumeBtn").classList.remove("hidden");
+          show("resumeBtn");
         }
       };
 
@@ -1638,6 +1670,44 @@ ${resume}${extra}`;
       renderHistory();
     }
 
+    function exportData() {
+      try {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          app: "Ambient AI",
+          settings: {
+            model: settings.model,
+            transcribeModel: settings.transcribeModel,
+            answerMode: settings.answerMode,
+            listenMode: settings.listenMode,
+            speakAnswers: settings.speakAnswers,
+            requireWakePhrase: settings.requireWakePhrase,
+            resumeContext: settings.resumeContext,
+            customStyle: settings.customStyle
+          },
+          qaHistory,
+          chatHistory,
+          lastAnswerText,
+          lastAnswerAt
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        a.href = url;
+        a.download = `ambient-ai-export-${ts}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        setLive("Exported data successfully.", true);
+      } catch (err) {
+        setLive("Export failed.", true);
+      }
+    }
+
     let autoFollow = true;
 
     function getAnswerWrap() {
@@ -1645,18 +1715,13 @@ ${resume}${extra}`;
     }
 
     function updateFollowUi() {
-      const followBtn = byId("followBtn");
-      if (followBtn) {
-        followBtn.textContent = autoFollow ? "Follow: On" : "Follow: Off";
-      }
-
       const jumpBtn = byId("jumpLatestBtn");
-      if (jumpBtn) {
-        if (autoFollow) {
-          jumpBtn.classList.add("hidden");
-        } else {
-          jumpBtn.classList.remove("hidden");
-        }
+      if (!jumpBtn) return;
+
+      if (autoFollow) {
+        jumpBtn.classList.add("hidden");
+      } else {
+        jumpBtn.classList.remove("hidden");
       }
     }
 
@@ -1699,13 +1764,16 @@ ${resume}${extra}`;
       }
     }
 
-    function toggleAutoFollow() {
-      autoFollow = !autoFollow;
-      updateFollowUi();
+    function submitTypedQuestion() {
+      const input = byId("questionInput");
+      if (!input || thinking) return;
 
-      if (autoFollow) {
-        scrollToLatest(true);
-      }
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      clearPendingQuestion();
+      ask(text);
     }
 
     function shorten(text, len) {
@@ -1784,6 +1852,16 @@ ${resume}${extra}`;
     document.addEventListener("DOMContentLoaded", () => {
       setupAnswerWrapScrollTracking();
       updateFollowUi();
+
+      const input = byId("questionInput");
+      if (input) {
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submitTypedQuestion();
+          }
+        });
+      }
     });
   </script>
 </body>
