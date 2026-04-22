@@ -44,7 +44,7 @@
       grid-template-columns: 1fr auto auto;
       gap: 8px;
       align-items: center;
-      padding: 8px 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--panel-3);
     }
@@ -52,15 +52,15 @@
     .title { min-width: 0; }
 
     .title h1 {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 800;
       line-height: 1.1;
     }
 
     .title p {
-      margin-top: 1px;
+      margin-top: 2px;
       color: var(--muted);
-      font-size: 10px;
+      font-size: 11px;
     }
 
     .status {
@@ -102,19 +102,19 @@
 
     .strip {
       flex-shrink: 0;
-      padding: 6px 10px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       background: #10192c;
     }
 
     .strip-top {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: nowrap;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .strip-top::-webkit-scrollbar {
@@ -125,10 +125,10 @@
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border: 1px solid var(--border);
       border-radius: 999px;
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 700;
       color: var(--muted);
       background: var(--panel);
@@ -141,10 +141,10 @@
     }
 
     .live-text {
-      min-height: 14px;
+      min-height: 18px;
       font-family: "JetBrains Mono", monospace;
-      font-size: 11px;
-      line-height: 1.35;
+      font-size: 12px;
+      line-height: 1.4;
       color: var(--text);
       word-break: break-word;
     }
@@ -154,8 +154,8 @@
     }
 
     .meter {
-      margin-top: 4px;
-      height: 3px;
+      margin-top: 6px;
+      height: 4px;
       width: 100%;
       border-radius: 999px;
       background: #26314b;
@@ -181,9 +181,7 @@
       min-height: 0;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-      overscroll-behavior: contain;
-      padding: 6px 8px 10px;
+      padding: 10px 10px 18px;
     }
 
     .empty {
@@ -205,7 +203,7 @@
     }
 
     .card-head {
-      padding: 8px 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--panel-2);
       display: flex;
@@ -256,12 +254,12 @@
     }
 
     .answer-body {
-      padding: 8px 10px;
+      padding: 10px;
     }
 
     .answer-text {
-      font-size: 15px;
-      line-height: 1.5;
+      font-size: 17px;
+      line-height: 1.6;
       color: var(--text);
       word-break: break-word;
     }
@@ -296,7 +294,7 @@
     }
 
     .meta {
-      padding: 0 10px 8px;
+      padding: 0 10px 10px;
       color: var(--muted);
       font-family: "JetBrains Mono", monospace;
       font-size: 10px;
@@ -372,14 +370,14 @@
       grid-template-columns: auto 1fr auto;
       gap: 8px;
       align-items: center;
-      padding: 8px 10px calc(8px + var(--safe-bottom));
+      padding: 10px 10px calc(10px + var(--safe-bottom));
       border-top: 1px solid var(--border);
       background: #0f1729;
     }
 
     .mic-btn {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       border: 2px solid var(--border);
       background: var(--panel);
@@ -406,61 +404,46 @@
       stroke-linejoin: round;
     }
 
-    .question-input {
-      width: 100%;
+    .bottom-text {
       min-width: 0;
-      height: 42px;
-      padding: 0 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      outline: none;
-      font-size: 14px;
     }
 
-    .question-input::placeholder {
+    .bottom-text .main-text {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .bottom-text .sub-text {
+      margin-top: 3px;
+      font-size: 11px;
       color: var(--muted);
+      line-height: 1.35;
     }
 
     .bottom-actions {
       display: flex;
       align-items: center;
       gap: 6px;
-      flex-shrink: 0;
     }
 
     .btn {
-      height: 42px;
-      padding: 0 12px;
-      border-radius: 10px;
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 9px;
       border: 1px solid var(--border);
       background: var(--panel);
       color: var(--text);
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
       cursor: pointer;
       white-space: nowrap;
-    }
-
-    .send-btn {
-      min-width: 42px;
-      padding: 0 12px;
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    .icon-only {
-      min-width: 42px;
-      width: 42px;
-      padding: 0;
-      font-size: 16px;
     }
 
     .resume-btn {
       position: fixed;
       right: 12px;
-      bottom: calc(66px + env(safe-area-inset-bottom));
+      bottom: calc(80px + env(safe-area-inset-bottom));
       z-index: 20;
       padding: 11px 14px;
       border-radius: 999px;
@@ -471,12 +454,6 @@
       font-size: 12px;
       box-shadow: 0 10px 24px rgba(0,0,0,0.22);
       cursor: pointer;
-    }
-
-    #jumpLatestBtn {
-      bottom: calc(118px + env(safe-area-inset-bottom));
-      background: var(--panel);
-      color: var(--text);
     }
 
     .hidden {
@@ -588,19 +565,41 @@
       cursor: pointer;
     }
 
+    .type-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--panel-3);
+      border-top: 1px solid var(--border);
+    }
+    .type-bar input {
+      flex: 1; padding: 10px 13px;
+      border-radius: 10px; border: 1px solid var(--border);
+      background: var(--panel); color: var(--text);
+      font-family: Inter, sans-serif; font-size: 14px;
+      outline: none; -webkit-appearance: none;
+    }
+    .type-bar input:focus { border-color: var(--accent); }
+    .type-bar input::placeholder { color: var(--muted2); }
+    .type-send {
+      width: 40px; height: 40px; border-radius: 10px;
+      border: none; background: var(--accent); color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .type-send:active { opacity: 0.75; }
+
     @media (min-width: 431px) {
       .title h1 { font-size: 18px; }
       .title p { font-size: 12px; }
       .status { font-size: 12px; padding: 7px 11px; }
-      .live-text { font-size: 12px; }
-      .answer-text { font-size: 17px; line-height: 1.6; }
+      .live-text { font-size: 13px; }
+      .answer-text { font-size: 18px; line-height: 1.65; }
       .question-text { font-size: 13px; }
-      .bottom { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
-      .btn { font-size: 12px; }
-      .mic-btn { width: 48px; height: 48px; }
-      .question-input { height: 44px; }
-      .send-btn { height: 44px; }
-      .icon-only { height: 44px; width: 44px; }
+      .bottom { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+      .btn { height: 34px; padding: 0 10px; font-size: 12px; }
+      .mic-btn { width: 50px; height: 50px; }
     }
   </style>
 </head>
@@ -615,9 +614,8 @@
 
       <label class="label" for="modelSelect">Answer model</label>
       <select id="modelSelect">
-        <option value="gpt-5.4-mini">gpt-5.4-mini</option>
-        <option value="gpt-5.4">gpt-5.4</option>
-        <option value="gpt-4o">gpt-4o</option>
+        <option value="gpt-5.4-mini">gpt-5.4-mini (fast)</option>
+        <option value="gpt-5.4" selected>gpt-5.4 (best)</option>
       </select>
 
       <label class="label" for="transcribeModelSelect">Transcription model</label>
@@ -690,7 +688,7 @@
   <div class="main">
     <div class="answer-wrap" id="answerWrap">
       <div class="empty" id="emptyState">
-        Type a question or tap the mic.<br>
+        Tap the mic and ask a question.<br>
         In continuous mode, the app tries to ignore you reading the last answer and wait for a new question.
       </div>
 
@@ -719,10 +717,18 @@
   </div>
 
   <button class="resume-btn hidden" id="resumeBtn" onclick="resumeListening()">Resume listening</button>
-  <button class="resume-btn hidden" id="jumpLatestBtn" onclick="scrollToLatest(true)">Jump to latest</button>
+
+  <div class="type-bar">
+    <input type="text" id="typeInput" placeholder="Type a question and press Enter…" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="type-send" onclick="sendTyped()">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
 
   <div class="bottom">
-    <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Start or stop microphone">
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()">
       <svg viewBox="0 0 24 24">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -731,19 +737,16 @@
       </svg>
     </button>
 
-    <input
-      id="questionInput"
-      class="question-input"
-      type="text"
-      placeholder="Type a question and press Enter..."
-      autocomplete="off"
-    />
+    <div class="bottom-text">
+      <div class="main-text" id="bottomMain">Tap mic to start</div>
+      <div class="sub-text" id="bottomSub">Continuous mode can auto-answer follow-ups.</div>
+    </div>
 
     <div class="bottom-actions">
-      <button class="btn send-btn" id="sendBtn" onclick="submitTypedQuestion()" title="Send">➤</button>
-      <button class="btn icon-only" onclick="toggleHistory()" title="History">🕘</button>
-      <button class="btn icon-only" onclick="clearAnswer()" title="Clear">✕</button>
-      <button class="btn icon-only" onclick="exportData()" title="Export">📤</button>
+      <button class="btn" onclick="scrollToLatest()">Latest</button>
+      <button class="btn" onclick="toggleHistory()">History</button>
+      <button class="btn" onclick="exportHistory()">Export</button>
+      <button class="btn" onclick="clearAnswer()">Clear</button>
     </div>
   </div>
 
@@ -753,7 +756,7 @@
   <script>
     let settings = {
       apiKey: localStorage.getItem("aai_key") || "",
-      model: localStorage.getItem("aai_model") || "gpt-5.4-mini",
+      model: localStorage.getItem("aai_model") || "gpt-5.4",
       transcribeModel: localStorage.getItem("aai_transcribe_model") || "gpt-4o-mini-transcribe",
       answerMode: localStorage.getItem("aai_answer_mode") || "compact",
       listenMode: localStorage.getItem("aai_listen_mode") || "ask_once",
@@ -792,17 +795,20 @@
     let pendingQuestionTimer = null;
     let pendingQuestionStartedAt = 0;
 
-    const VOICE_THRESHOLD = 0.025;
-    const SILENCE_AFTER_SPEECH_MS = 1800;
-    const MIN_SPEECH_MS = 700;
-    const MAX_SEGMENT_MS = 25000;
+    const VOICE_THRESHOLD = 0.020;
+    const SILENCE_AFTER_SPEECH_MS = 2200;
+    const MIN_SPEECH_MS = 400;
+    const MAX_SEGMENT_MS = 90000;
 
     const WAKE_PHRASE = "hey assistant";
     const STOP_COMMANDS = ["stop listening", "pause listening", "stop mic", "stop"];
     const END_COMMANDS = ["answer now", "that's it", "done", "go ahead"];
 
-    const SELF_READ_WINDOW_MS = 35000;
-    const SELF_READ_SIMILARITY_THRESHOLD = 0.80;
+    // Self-read filter — catches you reading the answer aloud
+    // Lower threshold = more aggressive filtering
+    // Longer window = protects longer after answer arrives
+    const SELF_READ_WINDOW_MS = 60000;
+    const SELF_READ_SIMILARITY_THRESHOLD = 0.55;
 
     const QUESTION_MERGE_WINDOW_MS = 4200;
     const MAX_PENDING_QUESTION_MS = 20000;
@@ -813,8 +819,24 @@
     if (settings.apiKey) hide("overlay");
 
     function byId(id) { return document.getElementById(id); }
-    function hide(id) { const el = byId(id); if (el) el.classList.add("hidden"); }
-    function show(id) { const el = byId(id); if (el) el.classList.remove("hidden"); }
+
+    function sendTyped() {
+      const input = byId("typeInput");
+      const q = input.value.trim();
+      if (!q) return;
+      if (!settings.apiKey) { openSettings(); return; }
+      input.value = "";
+      ask(q);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const inp = byId("typeInput");
+      if (inp) inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); sendTyped(); }
+      });
+    });
+    function hide(id) { byId(id).classList.add("hidden"); }
+    function show(id) { byId(id).classList.remove("hidden"); }
 
     function restoreSettings() {
       byId("keyInput").value = settings.apiKey;
@@ -882,18 +904,8 @@
     }
 
     function setBottom(main, sub) {
-      const input = byId("questionInput");
-      if (!input) return;
-
-      if (thinking) {
-        input.placeholder = "Generating answer...";
-      } else if (active) {
-        input.placeholder = "Listening... you can also type here";
-      } else if (main) {
-        input.placeholder = main;
-      } else {
-        input.placeholder = "Type a question and press Enter...";
-      }
+      byId("bottomMain").textContent = main;
+      byId("bottomSub").textContent = sub;
     }
 
     function setLive(text, muted = false) {
@@ -931,7 +943,7 @@
 
         active = true;
         byId("micBtn").classList.add("on");
-        hide("resumeBtn");
+        byId("resumeBtn").classList.add("hidden");
         setStatus("on", "Listening");
         setBottom("Listening...", "Ask your question and pause briefly.");
         setLive("Listening...", true);
@@ -949,7 +961,7 @@
       isSpeaking = false;
       isSegmentRecording = false;
       audioChunks = [];
-
+      
       clearPendingQuestion();
 
       if (monitorRaf) {
@@ -1160,27 +1172,23 @@
       fd.append("file", file);
       fd.append("model", settings.transcribeModel);
       fd.append("language", "en");
-      fd.append(
-        "prompt",
-        "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate."
-      );
+      const TRANSCRIBE_HINT = "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate.";
+      fd.append("prompt", TRANSCRIBE_HINT);
       fd.append("response_format", "json");
 
       const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
-        headers: {
-          "Authorization": "Bearer " + settings.apiKey
-        },
+        headers: { "Authorization": "Bearer " + settings.apiKey },
         body: fd
       });
 
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error?.message || ("HTTP " + res.status));
 
-      return {
-        text: (data.text || "").trim(),
-        speaker: null
-      };
+      let text = (data.text || "").trim();
+      if (text === TRANSCRIBE_HINT || text.startsWith("Transcribe in English.")) text = "";
+
+      return { text, speaker: null };
     }
 
     function normalizeQuestion(spoken) {
@@ -1250,136 +1258,179 @@
       return { ignore: false, similarity, recent };
     }
 
+    function exportHistory() {
+      if (!qaHistory.length) {
+        alert("No history to export yet.");
+        return;
+      }
+
+      const lines = [];
+      lines.push("AMBIENT AI — INTERVIEW HISTORY EXPORT");
+      lines.push("Exported: " + new Date().toLocaleString());
+      lines.push("Total Q&As: " + qaHistory.length);
+      lines.push("=".repeat(60));
+      lines.push("");
+
+      qaHistory.forEach((item, i) => {
+        lines.push(`Q${i + 1} [${item.type || "General"}] — ${item.timestamp || ""}`);
+        lines.push("-".repeat(40));
+        lines.push("QUESTION:");
+        lines.push(item.question || "—");
+        lines.push("");
+        lines.push("ANSWER:");
+        lines.push(item.answer || "—");
+        lines.push("");
+        lines.push("=".repeat(60));
+        lines.push("");
+      });
+
+      const text = lines.join("\n");
+
+      // Try download first, fall back to clipboard
+      try {
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "interview-history-" + Date.now() + ".txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Mobile fallback — copy to clipboard
+        navigator.clipboard.writeText(text).then(() => {
+          alert("History copied to clipboard! (" + qaHistory.length + " Q&As)\nPaste into Notes or email.");
+        }).catch(() => {
+          alert("Export failed. Try using the History panel to copy individual answers.");
+        });
+      }
+    }
+
     function decideWhetherToAnswer(transcript) {
       if (settings.listenMode !== "continuous") {
         return { action: "accept", reason: "ask-once mode" };
       }
 
       const ignoreCheck = ignoreIfMatchesLastAnswer(transcript);
-
       if (ignoreCheck.ignore) {
-        return {
-          action: "ignore",
-          reason: `Matched recent answer (similarity ${ignoreCheck.similarity.toFixed(2)})`
-        };
+        return { action: "ignore", reason: `Matched recent answer (similarity ${ignoreCheck.similarity.toFixed(2)})` };
+      }
+
+      // Extra check: if transcript contains a long run of words from the last answer
+      // This catches reading the answer aloud even when overall similarity is low
+      if (lastAnswerText && lastAnswerAt) {
+        const ageMs = Date.now() - lastAnswerAt;
+        if (ageMs <= SELF_READ_WINDOW_MS) {
+          const answerWords = tokenize(lastAnswerText);
+          const transcriptWords = tokenize(transcript);
+          // Check if any 6-word sequence from transcript appears in answer
+          for (let i = 0; i <= transcriptWords.length - 6; i++) {
+            const chunk = transcriptWords.slice(i, i + 6).join(" ");
+            if (answerWords.join(" ").includes(chunk)) {
+              return { action: "ignore", reason: "Phrase overlap with recent answer detected" };
+            }
+          }
+        }
       }
 
       if (looksLikeNewQuestion(transcript)) {
         return { action: "accept", reason: "looks like new question" };
       }
 
-      if (ignoreCheck.similarity < 0.45) {
+      if (ignoreCheck.similarity < 0.35) {
         return { action: "accept", reason: "low similarity to last answer" };
       }
 
-      return {
-        action: "ignore",
-        reason: `Possible repeat / unclear follow-up (similarity ${ignoreCheck.similarity.toFixed(2)})`
-      };
+      return { action: "ignore", reason: `Possible repeat / self-read (similarity ${ignoreCheck.similarity.toFixed(2)})` };
     }
 
     function mergeQuestionParts(existingText, nextText) {
-      const a = existingText.trim();
-      const b = nextText.trim();
+  const a = existingText.trim();
+  const b = nextText.trim();
 
-      if (!a) return b;
-      if (!b) return a;
+  if (!a) return b;
+  if (!b) return a;
 
-      if (a.toLowerCase() === b.toLowerCase()) return a;
-      if (a.toLowerCase().endsWith(b.toLowerCase())) return a;
+  if (a.toLowerCase() === b.toLowerCase()) return a;
+  if (a.toLowerCase().endsWith(b.toLowerCase())) return a;
 
-      return a + " " + b;
+  return a + " " + b;
+}
+
+function clearPendingQuestion() {
+  pendingQuestionText = "";
+  pendingQuestionStartedAt = 0;
+
+  if (pendingQuestionTimer) {
+    clearTimeout(pendingQuestionTimer);
+    pendingQuestionTimer = null;
+  }
+}
+
+function appendToPendingQuestion(text) {
+  const cleaned = text.trim();
+  if (!cleaned) return;
+
+  const nowTs = Date.now();
+
+  if (!pendingQuestionText) {
+    pendingQuestionText = cleaned;
+    pendingQuestionStartedAt = nowTs;
+  } else {
+    pendingQuestionText = mergeQuestionParts(pendingQuestionText, cleaned);
+  }
+
+  if (pendingQuestionTimer) {
+    clearTimeout(pendingQuestionTimer);
+  }
+
+  const ageMs = nowTs - pendingQuestionStartedAt;
+  const waitMs = ageMs >= MAX_PENDING_QUESTION_MS ? 250 : QUESTION_MERGE_WINDOW_MS;
+
+  pendingQuestionTimer = setTimeout(async () => {
+    const finalQuestion = pendingQuestionText.trim();
+    clearPendingQuestion();
+
+    if (finalQuestion) {
+      await ask(finalQuestion);
     }
-
-    function clearPendingQuestion() {
-      pendingQuestionText = "";
-      pendingQuestionStartedAt = 0;
-
-      if (pendingQuestionTimer) {
-        clearTimeout(pendingQuestionTimer);
-        pendingQuestionTimer = null;
-      }
-    }
-
-    function appendToPendingQuestion(text) {
-      const cleaned = text.trim();
-      if (!cleaned) return;
-
-      const nowTs = Date.now();
-
-      if (!pendingQuestionText) {
-        pendingQuestionText = cleaned;
-        pendingQuestionStartedAt = nowTs;
-      } else {
-        pendingQuestionText = mergeQuestionParts(pendingQuestionText, cleaned);
-      }
-
-      if (pendingQuestionTimer) {
-        clearTimeout(pendingQuestionTimer);
-      }
-
-      const ageMs = nowTs - pendingQuestionStartedAt;
-      const waitMs = ageMs >= MAX_PENDING_QUESTION_MS ? 250 : QUESTION_MERGE_WINDOW_MS;
-
-      pendingQuestionTimer = setTimeout(async () => {
-        const finalQuestion = pendingQuestionText.trim();
-        clearPendingQuestion();
-
-        if (finalQuestion) {
-          await ask(finalQuestion);
-        }
-      }, waitMs);
-    }
+  }, waitMs);
+}
 
     function buildSystemPrompt() {
-      const resume = settings.resumeContext
-        ? `Candidate background:\n${settings.resumeContext}\n\n`
-        : "";
+      const resume = settings.resumeContext ? `Candidate background:\n${settings.resumeContext}\n\n` : "";
+      const extra = settings.customStyle ? `Extra preferences:\n${settings.customStyle}\n\n` : "";
+      const answerModeBlock = settings.answerMode === "compact"
+        ? "Answer length: concise. 3-5 sentences for concepts, short snippet for coding, one key tradeoff for design."
+        : "Answer length: go deep. Full explanation, working code, tradeoffs, edge cases, debugging angle. Do NOT truncate.";
 
-      const extra = settings.customStyle
-        ? `Extra answer preferences:\n${settings.customStyle}\n\n`
-        : "";
+      return `You are helping a senior Android engineer ace interviews for two AAOS roles at a Palo Alto automotive company. Answer as if you ARE that engineer — first person, natural, confident, like you've shipped this stuff.
 
-      const answerModeBlock =
-        settings.answerMode === "compact"
-          ? `Response mode: compact.
-- Keep answers short and interview-ready.
-- Behavioral/scenario answers: 4-6 bullets max.
-- Technical answers: brief mechanism + key tradeoff.
-- Coding answers: short approach, commented Kotlin code, time complexity, space complexity.
-- Avoid unnecessary detail.`
-          : `Response mode: full.
-- Give a fuller answer with structure and depth.
-- Behavioral/scenario answers: include reasoning, tradeoffs, outcome.
-- Technical answers: explain mechanism, debugging angle, tradeoffs.
-- Coding answers: approach, commented Kotlin code, time complexity, space complexity, edge cases.`;
+TONE: No "Certainly!", "Great question!", "Absolutely!". Just answer. Sound like a senior staff engineer at a whiteboard.
 
-      return `You are a senior-level interview and problem-solving assistant.
+CORRECT AAOS PATTERNS:
+- HVAC/SEAT: Car.createCar(context) → CarPropertyManager via Car.PROPERTY_SERVICE. Never invent custom AIDL for HVAC/SEAT.
+- Area IDs: VehicleAreaSeat.ROW_1_LEFT (driver), ROW_1_RIGHT (passenger). Always explicit, never raw ints.
+- Subscriptions: registerCallback(callback, propertyId, SENSOR_RATE_ONCHANGE). Always implement both onChangeEvent AND onErrorEvent.
+- Check CarPropertyValue.getStatus() == STATUS_AVAILABLE before using value.
+- Car lifecycle: CarServiceLifecycleListener for reconnection. Disconnect in onDestroy.
+- Modern Kotlin: StateFlow + coroutines. Not LiveData.
+- Permissions: android.car.permission.CAR_HVAC, CONTROL_CAR_CLIMATE, CONTROL_CAR_SEATS. System/privileged for writes on real OEM builds.
+- VHAL properties: HVAC_TEMPERATURE_SET, HVAC_FAN_SPEED, HVAC_FAN_DIRECTION, HVAC_POWER_ON, HVAC_AC_ON, HVAC_DEFROSTER, SEAT_FORE_AFT_POS, SEAT_BACKREST_ANGLE, SEAT_HEIGHT_POS, SEAT_LUMBAR_FORE_AFT_POS, SEAT_MEMORY_SELECT.
+- Build: Android.bp for Soong, android_app module, PRODUCT_PACKAGES in product.mk, compileOnly android.car.jar in Android Studio.
+- SELinux: every new applet needs type in .te, domain transition, file_contexts. Check avc denials: logcat -b all | grep avc.
+- Debugging: dumpsys carservice, adb shell cmd car_service get-property <propId> <areaId>, lshal, perfetto/systrace.
 
-Core behavior:
-- Answer any question naturally, clearly, and confidently.
-- Adapt to question type:
-  - behavioral -> authentic senior ownership, impact, collaboration
-  - scenario-based -> approach, tradeoffs, risks, resolution
-  - coding -> prefer Kotlin unless another language is requested
-  - Android / AAOS / system design -> senior-level technical depth and practical debugging insight
-  - general -> direct and clear
-- If resume/project context is provided, use it to sound relevant to the candidate's real experience.
-- If the question is ambiguous due to speech recognition issues, answer the most likely interpretation first.
-- Avoid robotic filler.
+TARGET ROLES:
+1. Full-Stack Engineer — Embedded Physical Applets (AAOS): Kotlin/Java applets, C++ JNI, AIDL/Binder, CarService/Car API, VHAL, AOSP customization, HMI integration.
+2. Android Developer — DPD Integration: AOSP build system (Soong/Blueprint/Android.bp), DPD config XMLs, partitions, feature flags, overlays, boot validation, ADB/logcat/systrace.
 
 ${answerModeBlock}
-
-Coding rules:
-- Add concise comments in code explaining each step.
-- Prefer interview-friendly code.
-
 ${resume}${extra}`;
     }
 
     async function ask(question) {
-      if (!question || !question.trim()) return;
-
       thinking = true;
       setStatus("thinking", "Thinking");
       setBottom("Generating answer...", "Streaming answer as it arrives.");
@@ -1398,7 +1449,7 @@ ${resume}${extra}`;
       scrollToLatest();
 
       try {
-        const maxCompletionTokens = settings.answerMode === "compact" ? 260 : 700;
+        const maxTokens = settings.answerMode === "compact" ? 600 : 3000;
         const selectedModel = chooseModelForQuestion(question);
 
         const payload = {
@@ -1411,9 +1462,9 @@ ${resume}${extra}`;
         };
 
         if (selectedModel.startsWith("gpt-5")) {
-          payload.max_completion_tokens = maxCompletionTokens;
+          payload.max_completion_tokens = maxTokens;
         } else {
-          payload.max_tokens = maxCompletionTokens;
+          payload.max_tokens = maxTokens;
           payload.temperature = 0.2;
         }
 
@@ -1509,7 +1560,7 @@ ${resume}${extra}`;
         setStatus("", "Answer ready");
         setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
         setLive("Answer ready. Mic paused.", true);
-        show("resumeBtn");
+        byId("resumeBtn").classList.remove("hidden");
       }
     }
 
@@ -1535,7 +1586,7 @@ ${resume}${extra}`;
           setStatus("", "Answer ready");
           setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
           setLive("Answer ready. Mic paused.", true);
-          show("resumeBtn");
+          byId("resumeBtn").classList.remove("hidden");
         }
       };
 
@@ -1590,7 +1641,7 @@ ${resume}${extra}`;
       byId("latestAnswer").innerHTML = formatAnswer(item.answer);
       byId("typeBadge").textContent = item.type || "General";
       byId("latestMeta").textContent = `${item.timestamp || ""} · ${item.model || ""}`;
-      scrollToLatest(true);
+      scrollToLatest();
     }
 
     function toggleHistory() {
@@ -1610,23 +1661,46 @@ ${resume}${extra}`;
     }
 
     function chooseModelForQuestion(question) {
-  return settings.model;
-}
+      return settings.model || "gpt-5.4";
+    }
 
-    function formatAnswer(text) {
+    function formatAnswer(raw) {
+      const codeBlocks = [];
+      let text = raw.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+        const idx = codeBlocks.length;
+        codeBlocks.push(`<pre><code>${escCode(code.trim())}</code></pre>`);
+        return `%%CB_${idx}%%`;
+      });
       text = esc(text);
+      text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+      text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+      text = text.replace(/^### (.+)$/gm, '<h3 style="font-size:14px;font-weight:800;margin:16px 0 6px;color:#aac8ff;">$1</h3>');
+      text = text.replace(/^## (.+)$/gm,  '<h2 style="font-size:15px;font-weight:800;margin:18px 0 7px;color:#c8daff;">$1</h2>');
+      text = text.replace(/^# (.+)$/gm,   '<h2 style="font-size:16px;font-weight:800;margin:18px 0 8px;color:#dce9ff;border-bottom:1px solid #2b3858;padding-bottom:4px;">$1</h2>');
+      text = text.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2b3858;margin:14px 0;">');
+      text = text.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
+        const items = block.trim().split('\n').map(l => `<li style="margin-bottom:6px;">${l.replace(/^\d+\.\s*/,'')}</li>`).join('');
+        return `<ol style="margin:8px 0 12px 20px;padding:0;">${items}</ol>`;
+      });
+      text = text.replace(/((?:^[-*] .+\n?)+)/gm, (block) => {
+        const items = block.trim().split('\n').map(l => `<li style="margin-bottom:6px;">${l.replace(/^[-*]\s*/,'')}</li>`).join('');
+        return `<ul style="margin:8px 0 12px 20px;padding:0;">${items}</ul>`;
+      });
+      const blockTags = /^<(h[1-6]|ul|ol|hr|pre|div)/;
+      let html = text.split(/\n{2,}/).map(p => {
+        p = p.trim().replace(/\n/g, '<br>');
+        if (!p) return '';
+        if (blockTags.test(p)) return p;
+        return `<p style="margin:0 0 10px;">${p}</p>`;
+      }).filter(Boolean).join('');
+      codeBlocks.forEach((b, i) => { html = html.replace(`%%CB_${i}%%`, b); });
+      return html || '<p>No response.</p>';
+    }
 
-      text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => `<pre>${code.trim()}</pre>`);
-      text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
-      text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-
-      const parts = text
-        .split(/\n{2,}/)
-        .map(p => p.trim())
-        .filter(Boolean)
-        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`);
-
-      return parts.join("") || "<p>No response.</p>";
+    function escCode(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     function stripMarkdownForSpeech(text) {
@@ -1646,7 +1720,6 @@ ${resume}${extra}`;
       hide("latestCard");
       show("emptyState");
       hide("resumeBtn");
-      hide("jumpLatestBtn");
       byId("latestQuestion").textContent = "—";
       byId("latestAnswer").innerHTML = "<p>—</p>";
       byId("latestMeta").textContent = "—";
@@ -1654,110 +1727,11 @@ ${resume}${extra}`;
       renderHistory();
     }
 
-    function exportData() {
-      try {
-        const payload = {
-          exportedAt: new Date().toISOString(),
-          app: "Ambient AI",
-          settings: {
-            model: settings.model,
-            transcribeModel: settings.transcribeModel,
-            answerMode: settings.answerMode,
-            listenMode: settings.listenMode,
-            speakAnswers: settings.speakAnswers,
-            requireWakePhrase: settings.requireWakePhrase,
-            resumeContext: settings.resumeContext,
-            customStyle: settings.customStyle
-          },
-          qaHistory,
-          chatHistory,
-          lastAnswerText,
-          lastAnswerAt
-        };
-
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const ts = new Date().toISOString().replace(/[:.]/g, "-");
-        a.href = url;
-        a.download = `ambient-ai-export-${ts}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        setLive("Exported data successfully.", true);
-      } catch (err) {
-        setLive("Export failed.", true);
-      }
-    }
-
-    let autoFollow = true;
-
-    function getAnswerWrap() {
-      return document.getElementById("answerWrap");
-    }
-
-    function updateFollowUi() {
-      const jumpBtn = byId("jumpLatestBtn");
-      if (!jumpBtn) return;
-
-      if (autoFollow) {
-        jumpBtn.classList.add("hidden");
-      } else {
-        jumpBtn.classList.remove("hidden");
-      }
-    }
-
-    function setupAnswerWrapScrollTracking() {
-      const answerWrap = getAnswerWrap();
-      if (!answerWrap) return;
-
-      answerWrap.addEventListener("scroll", () => {
-        const nearBottom =
-          answerWrap.scrollHeight - answerWrap.scrollTop - answerWrap.clientHeight < 50;
-
-        autoFollow = nearBottom;
-        updateFollowUi();
-      }, { passive: true });
-
-      answerWrap.addEventListener("touchstart", () => {
-        autoFollow = false;
-        updateFollowUi();
-      }, { passive: true });
-
-      answerWrap.addEventListener("wheel", () => {
-        autoFollow = false;
-        updateFollowUi();
-      }, { passive: true });
-    }
-
-    function scrollToLatest(force = false) {
-      const wrap = getAnswerWrap();
-      if (!wrap) return;
-
-      if (force) {
-        autoFollow = true;
-        updateFollowUi();
-      }
-
-      if (autoFollow || force) {
-        requestAnimationFrame(() => {
-          wrap.scrollTop = wrap.scrollHeight;
-        });
-      }
-    }
-
-    function submitTypedQuestion() {
-      const input = byId("questionInput");
-      if (!input || thinking) return;
-
-      const text = input.value.trim();
-      if (!text) return;
-
-      input.value = "";
-      clearPendingQuestion();
-      ask(text);
+    function scrollToLatest() {
+      const wrap = byId("answerWrap");
+      setTimeout(() => {
+        wrap.scrollTop = 0;
+      }, 30);
     }
 
     function shorten(text, len) {
@@ -1832,21 +1806,6 @@ ${resume}${extra}`;
       const result = await mammoth.extractRawText({ arrayBuffer: arr });
       return result.value || "";
     }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      setupAnswerWrapScrollTracking();
-      updateFollowUi();
-
-      const input = byId("questionInput");
-      if (input) {
-        input.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            submitTypedQuestion();
-          }
-        });
-      }
-    });
   </script>
 </body>
 </html>
