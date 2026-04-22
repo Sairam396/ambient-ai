@@ -281,18 +281,95 @@
     }
 
     .answer-text pre {
-      margin: 10px 0 14px;
+      margin: 0;
       padding: 10px;
-      border-radius: 10px;
+      border-radius: 0 0 10px 10px;
       background: #0b1220;
       border: 1px solid var(--border);
+      border-top: 0;
       overflow-x: auto;
       white-space: pre;
       font-family: "JetBrains Mono", monospace;
       font-size: 11px;
       line-height: 1.45;
       color: #eaf2ff;
-      max-height: 180px;
+      max-height: 220px;
+    }
+
+    .answer-collapsed {
+      max-height: 220px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .answer-collapsed::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 72px;
+      background: linear-gradient(to bottom, rgba(18,27,47,0), rgba(18,27,47,1));
+      pointer-events: none;
+    }
+
+    .answer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 0 10px 10px;
+    }
+
+    .mini-btn {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-btn.hidden {
+      display: none !important;
+    }
+
+    .code-block {
+      margin: 10px 0 14px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #0b1220;
+    }
+
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: #111b31;
+    }
+
+    .code-lang {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .copy-btn {
+      border: 1px solid var(--border);
+      background: #1a2742;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
     }
 
     .meta {
@@ -705,6 +782,10 @@
         <div class="answer-body">
           <div class="answer-text" id="latestAnswer"><p>—</p></div>
         </div>
+        <div class="answer-actions">
+          <button class="mini-btn hidden" id="expandBtn" onclick="expandAnswer()">Expand full answer</button>
+          <button class="mini-btn hidden" id="collapseBtn" onclick="collapseAnswer()">Collapse</button>
+        </div>
         <div class="meta" id="latestMeta">—</div>
       </div>
     </div>
@@ -768,6 +849,14 @@
     let isSpeaking = false;
     let historyDrawerOpen = false;
 
+    let recognition = null;
+    let recognitionSupported = false;
+    let usingBrowserRecognition = false;
+    let browserTranscriptBuffer = "";
+    let browserFinalTimer = null;
+    let lastRecognitionStartAt = 0;
+    let suppressRecognitionRestart = false;
+
     let mediaStream = null;
     let mediaRecorder = null;
     let audioChunks = [];
@@ -792,6 +881,9 @@
     let pendingQuestionTimer = null;
     let pendingQuestionStartedAt = 0;
 
+    let latestFullAnswerText = "";
+    let answerExpanded = false;
+
     const VOICE_THRESHOLD = 0.025;
     const SILENCE_AFTER_SPEECH_MS = 1800;
     const MIN_SPEECH_MS = 700;
@@ -804,12 +896,23 @@
     const SELF_READ_WINDOW_MS = 35000;
     const SELF_READ_SIMILARITY_THRESHOLD = 0.80;
 
-    const QUESTION_MERGE_WINDOW_MS = 4200;
-    const MAX_PENDING_QUESTION_MS = 20000;
+    const QUESTION_MERGE_WINDOW_MS = 1400;
+    const MAX_PENDING_QUESTION_MS = 9000;
+    const BROWSER_FINAL_DEBOUNCE_MS = 700;
+
+    const UI_ECHO_PATTERNS = [
+      /transcribe in english/i,
+      /keep android/i,
+      /self read filter/i,
+      /continuous interview copilot/i,
+      /^context\s*:/i,
+      /^#+\s*/
+    ];
 
     restoreSettings();
     refreshPills();
     renderHistory();
+    initBrowserRecognition();
     if (settings.apiKey) hide("overlay");
 
     function byId(id) { return document.getElementById(id); }
@@ -835,7 +938,7 @@
       byId("modePill").className = "pill active";
       byId("wakePill").textContent = settings.requireWakePhrase ? "Wake phrase on" : "Wake phrase optional";
       byId("wakePill").className = "pill" + (settings.requireWakePhrase ? " active" : "");
-      byId("filterPill").textContent = "Self-read filter on";
+      byId("filterPill").textContent = recognitionSupported ? "Fast listen on" : "Self-read filter on";
       byId("filterPill").className = "pill active";
     }
 
@@ -912,7 +1015,16 @@
         return;
       }
 
+      clearPendingQuestion();
+      speechSynthesis.cancel();
+      suppressRecognitionRestart = false;
+
       try {
+        if (recognitionSupported) {
+          startBrowserRecognition();
+          return;
+        }
+
         mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
@@ -930,6 +1042,7 @@
         sourceNode.connect(analyser);
 
         active = true;
+        usingBrowserRecognition = false;
         byId("micBtn").classList.add("on");
         hide("resumeBtn");
         setStatus("on", "Listening");
@@ -951,6 +1064,13 @@
       audioChunks = [];
 
       clearPendingQuestion();
+      clearBrowserFinalTimer();
+      browserTranscriptBuffer = "";
+      suppressRecognitionRestart = true;
+
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+      }
 
       if (monitorRaf) {
         cancelAnimationFrame(monitorRaf);
@@ -980,6 +1100,7 @@
       }
 
       speechSynthesis.cancel();
+      usingBrowserRecognition = false;
 
       byId("micBtn").classList.remove("on");
       byId("meterFill").style.width = "0%";
@@ -990,6 +1111,107 @@
 
     function resumeListening() {
       startMic();
+    }
+
+    function initBrowserRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionSupported = !!SpeechRecognition;
+      if (!recognitionSupported) return;
+
+      recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        active = true;
+        usingBrowserRecognition = true;
+        lastRecognitionStartAt = Date.now();
+        byId("micBtn").classList.add("on");
+        hide("resumeBtn");
+        setStatus("on", "Listening");
+        setBottom("Listening...", "Fast browser speech recognition is active.");
+        setLive("Listening...", true);
+      };
+
+      recognition.onresult = (event) => {
+        let interim = "";
+        let finalText = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0]?.transcript || "";
+          if (event.results[i].isFinal) {
+            finalText += " " + transcript;
+          } else {
+            interim += " " + transcript;
+          }
+        }
+
+        const preview = sanitizeTranscript((browserTranscriptBuffer + " " + interim).trim());
+        if (preview) {
+          setLive(preview, false);
+        }
+
+        const cleanedFinal = sanitizeTranscript(finalText);
+        if (cleanedFinal) {
+          browserTranscriptBuffer = mergeQuestionParts(browserTranscriptBuffer, cleanedFinal);
+          scheduleBrowserFinalQuestion();
+          setLive(browserTranscriptBuffer, false);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        const error = event?.error || "unknown";
+        if (["no-speech", "aborted", "audio-capture"].includes(error)) {
+          setStatus("on", "Listening");
+          setBottom("Listening...", "Waiting for speech.");
+        } else if (error === "not-allowed") {
+          setStatus("err", "Mic denied");
+          setBottom("Microphone access failed", "Allow microphone access in the browser.");
+        }
+      };
+
+      recognition.onend = () => {
+        if (!active || suppressRecognitionRestart) return;
+        setTimeout(() => {
+          if (active && !thinking && !isSpeaking) {
+            try { recognition.start(); } catch (e) {}
+          }
+        }, 120);
+      };
+
+      refreshPills();
+    }
+
+    function startBrowserRecognition() {
+      active = true;
+      usingBrowserRecognition = true;
+      try {
+        recognition.start();
+      } catch (err) {
+        if (String(err.message || err).toLowerCase().includes("already started")) return;
+        throw err;
+      }
+    }
+
+    function clearBrowserFinalTimer() {
+      if (browserFinalTimer) {
+        clearTimeout(browserFinalTimer);
+        browserFinalTimer = null;
+      }
+    }
+
+    function scheduleBrowserFinalQuestion() {
+      clearBrowserFinalTimer();
+      browserFinalTimer = setTimeout(async () => {
+        const finalQuestion = sanitizeTranscript(browserTranscriptBuffer).trim();
+        browserTranscriptBuffer = "";
+        clearBrowserFinalTimer();
+        if (finalQuestion) {
+          await processTranscript(finalQuestion);
+        }
+      }, BROWSER_FINAL_DEBOUNCE_MS);
     }
 
     function startSegmentRecording() {
@@ -1098,60 +1320,88 @@
           return;
         }
 
-        let transcript = transcription.text.trim();
-        setLive(transcript, false);
-
-        const normalized = transcript.toLowerCase();
-
-        if (STOP_COMMANDS.includes(normalized)) {
-          stopMic();
-          return;
-        }
-
-        for (const cmd of END_COMMANDS) {
-          if (normalized.endsWith(cmd)) {
-            transcript = transcript.slice(0, -cmd.length).trim();
-            break;
-          }
-        }
-
-        if (!transcript) {
-          setStatus("on", "Listening");
-          setBottom("Listening...", "Waiting for next question.");
-          setLive("Listening...", true);
-          return;
-        }
-
-        const question = normalizeQuestion(transcript);
-        if (!question) {
-          setStatus("on", "Listening");
-          setBottom("Wake phrase required", `Say "${WAKE_PHRASE}" before your question.`);
-          setLive("Wake phrase required.", true);
-          return;
-        }
-
-        const decision = decideWhetherToAnswer(question);
-
-        if (decision.action === "ignore") {
-          ignoredCount += 1;
-          setStatus("on", "Listening");
-          setBottom("Ignored repeated speech", decision.reason);
-          setLive("Ignored as likely self-read / repeated answer.", true);
-          return;
-        }
-
-        appendToPendingQuestion(question);
-
-        setStatus("on", "Listening");
-        setBottom("Collecting question...", "Waiting briefly in case more of the question is coming.");
-        setLive(`Buffered question: ${shorten(pendingQuestionText, 120)}`, false);
-        return;
-
+        await processTranscript(transcription.text);
       } catch (err) {
         setStatus("err", "Transcription error");
         setBottom("OpenAI transcription failed", err.message || "Unknown error");
         setLive("Transcription failed.", true);
       }
+    }
+
+    function sanitizeTranscript(text) {
+      let cleaned = String(text || "").replace(/\s+/g, " ").trim();
+      if (!cleaned) return "";
+
+      cleaned = cleaned.replace(/^context\s*:\s*/i, "");
+      cleaned = cleaned.replace(/^#+\s*/g, "");
+      cleaned = cleaned.replace(/^transcribe in english\.?\s*/i, "");
+      cleaned = cleaned.replace(/^keep android.*?accurate\.?\s*/i, "");
+
+      for (const pattern of UI_ECHO_PATTERNS) {
+        if (pattern.test(cleaned)) {
+          cleaned = cleaned.replace(pattern, "").trim();
+        }
+      }
+
+      return cleaned.replace(/^[:\-\s]+/, "").trim();
+    }
+
+    async function processTranscript(rawTranscript) {
+      let transcript = sanitizeTranscript(rawTranscript);
+      if (!transcript) {
+        setStatus("on", "Listening");
+        setBottom("Listening...", "Waiting for next question.");
+        setLive("Listening...", true);
+        return;
+      }
+
+      setLive(transcript, false);
+
+      const normalized = transcript.toLowerCase();
+
+      if (STOP_COMMANDS.includes(normalized)) {
+        stopMic();
+        return;
+      }
+
+      for (const cmd of END_COMMANDS) {
+        if (normalized.endsWith(cmd)) {
+          transcript = transcript.slice(0, -cmd.length).trim();
+          break;
+        }
+      }
+
+      transcript = sanitizeTranscript(transcript);
+      if (!transcript) {
+        setStatus("on", "Listening");
+        setBottom("Listening...", "Waiting for next question.");
+        setLive("Listening...", true);
+        return;
+      }
+
+      const question = normalizeQuestion(transcript);
+      if (!question) {
+        setStatus("on", "Listening");
+        setBottom("Wake phrase required", `Say "${WAKE_PHRASE}" before your question.`);
+        setLive("Wake phrase required.", true);
+        return;
+      }
+
+      const decision = decideWhetherToAnswer(question);
+
+      if (decision.action === "ignore") {
+        ignoredCount += 1;
+        setStatus("on", "Listening");
+        setBottom("Ignored repeated speech", decision.reason);
+        setLive("Ignored as likely self-read / repeated answer.", true);
+        return;
+      }
+
+      appendToPendingQuestion(question);
+
+      setStatus("on", "Listening");
+      setBottom("Collecting question...", "Waiting briefly in case more of the question is coming.");
+      setLive(`Buffered question: ${shorten(pendingQuestionText, 120)}`, false);
     }
 
     async function transcribeAudio(blob) {
@@ -1162,7 +1412,7 @@
       fd.append("language", "en");
       fd.append(
         "prompt",
-        "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate."
+        "English only. Preserve Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, and coroutine terminology accurately."
       );
       fd.append("response_format", "json");
 
@@ -1381,6 +1631,9 @@ ${resume}${extra}`;
       if (!question || !question.trim()) return;
 
       thinking = true;
+      if (recognition && usingBrowserRecognition) {
+        try { recognition.stop(); } catch (e) {}
+      }
       setStatus("thinking", "Thinking");
       setBottom("Generating answer...", "Streaming answer as it arrives.");
       setLive(question, false);
@@ -1392,7 +1645,12 @@ ${resume}${extra}`;
       hide("emptyState");
       show("latestCard");
       byId("latestQuestion").textContent = question;
+      latestFullAnswerText = "";
+      answerExpanded = false;
+      byId("latestAnswer").classList.remove("answer-collapsed");
       byId("latestAnswer").innerHTML = "<p><em>Thinking...</em></p>";
+      hide("expandBtn");
+      hide("collapseBtn");
       byId("latestMeta").textContent = "Generating...";
       byId("typeBadge").textContent = "General";
       scrollToLatest();
@@ -1456,13 +1714,14 @@ ${resume}${extra}`;
               const delta = data.choices?.[0]?.delta?.content || "";
               if (!delta) continue;
               fullText += delta;
-              byId("latestAnswer").innerHTML = formatAnswer(fullText);
+              renderLatestAnswer(fullText, false);
               scrollToLatest();
             } catch (_) {}
           }
         }
 
         const answer = fullText.trim() || "No answer returned.";
+        renderLatestAnswer(answer, false);
         const ms = ((Date.now() - started) / 1000).toFixed(1);
         const type = detectQuestionType(question, answer);
 
@@ -1502,8 +1761,11 @@ ${resume}${extra}`;
     function onAnswerReady() {
       if (settings.listenMode === "continuous") {
         setStatus("on", "Listening");
-        setBottom("Listening...", "Continuous mode: waiting for follow-up.");
+        setBottom("Listening...", recognitionSupported ? "Fast browser speech recognition active." : "Continuous mode: waiting for follow-up.");
         setLive("Listening... self-read filter active.", true);
+        if (recognition && active && !isSpeaking) {
+          setTimeout(() => { try { recognition.start(); } catch (e) {} }, 120);
+        }
       } else {
         stopMic();
         setStatus("", "Answer ready");
@@ -1528,8 +1790,11 @@ ${resume}${extra}`;
         isSpeaking = false;
         if (settings.listenMode === "continuous") {
           setStatus("on", "Listening");
-          setBottom("Listening...", "Continuous mode: waiting for follow-up.");
+          setBottom("Listening...", recognitionSupported ? "Fast browser speech recognition active." : "Continuous mode: waiting for follow-up.");
           setLive("Listening... self-read filter active.", true);
+          if (recognition && active) {
+            setTimeout(() => { try { recognition.start(); } catch (e) {} }, 120);
+          }
         } else {
           stopMic();
           setStatus("", "Answer ready");
@@ -1587,7 +1852,7 @@ ${resume}${extra}`;
       hide("emptyState");
       show("latestCard");
       byId("latestQuestion").textContent = item.question;
-      byId("latestAnswer").innerHTML = formatAnswer(item.answer);
+      renderLatestAnswer(item.answer, false);
       byId("typeBadge").textContent = item.type || "General";
       byId("latestMeta").textContent = `${item.timestamp || ""} · ${item.model || ""}`;
       scrollToLatest(true);
@@ -1613,10 +1878,68 @@ ${resume}${extra}`;
   return settings.model;
 }
 
+    function getCollapsedAnswerText(text) {
+      const cleaned = String(text || "").trim();
+      if (!cleaned) return "";
+
+      const paragraphs = cleaned.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+      if (paragraphs.length <= 2 && cleaned.length <= 520) return cleaned;
+
+      let preview = paragraphs.slice(0, 2).join("\n\n").trim();
+      if (!preview) preview = cleaned.slice(0, 520).trim();
+      if (preview.length > 520) preview = preview.slice(0, 520).trim();
+      if (preview.length < cleaned.length) preview += "\n\n...";
+      return preview;
+    }
+
+    function renderLatestAnswer(text, forceExpanded = false) {
+      latestFullAnswerText = String(text || "").trim();
+      const collapsedText = getCollapsedAnswerText(latestFullAnswerText);
+      const hasMore = latestFullAnswerText && collapsedText && collapsedText !== latestFullAnswerText;
+
+      answerExpanded = forceExpanded ? true : !hasMore;
+
+      byId("latestAnswer").classList.toggle("answer-collapsed", hasMore && !answerExpanded);
+      byId("latestAnswer").innerHTML = formatAnswer(answerExpanded ? latestFullAnswerText : collapsedText);
+
+      byId("expandBtn").classList.toggle("hidden", !hasMore || answerExpanded);
+      byId("collapseBtn").classList.toggle("hidden", !hasMore || !answerExpanded);
+    }
+
+    function expandAnswer() {
+      if (!latestFullAnswerText) return;
+      renderLatestAnswer(latestFullAnswerText, true);
+      scrollToLatest(true);
+    }
+
+    function collapseAnswer() {
+      if (!latestFullAnswerText) return;
+      renderLatestAnswer(latestFullAnswerText, false);
+      scrollToLatest(true);
+    }
+
+    async function copyCodeFromEncoded(button) {
+      const encoded = button?.getAttribute("data-code") || "";
+      if (!encoded) return;
+      try {
+        await navigator.clipboard.writeText(decodeURIComponent(encoded));
+        const old = button.textContent;
+        button.textContent = "Copied";
+        setTimeout(() => { button.textContent = old; }, 1200);
+      } catch (e) {
+        alert("Copy failed. Please long press and copy manually.");
+      }
+    }
+
     function formatAnswer(text) {
       text = esc(text);
 
-      text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => `<pre>${code.trim()}</pre>`);
+      text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+        const safeCode = code.trim();
+        const encoded = encodeURIComponent(safeCode);
+        const label = (lang || "code").trim();
+        return `<div class="code-block"><div class="code-toolbar"><span class="code-lang">${label}</span><button class="copy-btn" data-code="${encoded}" onclick="copyCodeFromEncoded(this)">Copy</button></div><pre>${safeCode}</pre></div>`;
+      });
       text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
       text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
@@ -1624,7 +1947,7 @@ ${resume}${extra}`;
         .split(/\n{2,}/)
         .map(p => p.trim())
         .filter(Boolean)
-        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`);
+        .map(p => p.startsWith('<div class="code-block">') ? p : `<p>${p.replace(/\n/g, "<br>")}</p>`);
 
       return parts.join("") || "<p>No response.</p>";
     }
@@ -1647,8 +1970,13 @@ ${resume}${extra}`;
       show("emptyState");
       hide("resumeBtn");
       hide("jumpLatestBtn");
+      latestFullAnswerText = "";
+      answerExpanded = false;
       byId("latestQuestion").textContent = "—";
+      byId("latestAnswer").classList.remove("answer-collapsed");
       byId("latestAnswer").innerHTML = "<p>—</p>";
+      hide("expandBtn");
+      hide("collapseBtn");
       byId("latestMeta").textContent = "—";
       setLive("Ready.", true);
       renderHistory();
