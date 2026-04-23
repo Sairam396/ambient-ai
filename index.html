@@ -647,14 +647,14 @@
       </div>
 
       <label class="label" for="resumeContext">Resume / project context</label>
-      <textarea id="resumeContext" placeholder="Paste resume highlights, projects, ownership, metrics, Android/AAOS experience, Kotlin work, debugging stories..."></textarea>
+      <textarea id="resumeContext" placeholder="Paste resume highlights, projects, ownership, metrics, Android mobile, Android OS, AAOS, Kotlin work, debugging stories..."></textarea>
 
       <button class="secondary" onclick="pickResumeFile()">Upload resume file (.txt, .md, .pdf, .docx)</button>
       <input type="file" id="resumeFile" class="hidden" accept=".txt,.md,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" />
       <p id="uploadStatus">No file uploaded.</p>
 
       <label class="label" for="customStyle">Optional extra answer style</label>
-      <textarea id="customStyle" placeholder="Example: natural senior answers, Kotlin for coding, AAOS internals, practical debugging, concise communication."></textarea>
+      <textarea id="customStyle" placeholder="Example: natural senior answers, Kotlin for coding, Android mobile or AAOS depending on the question, practical debugging, concise communication."></textarea>
 
       <button class="primary" onclick="saveSettings()">Start</button>
     </div>
@@ -1172,7 +1172,7 @@
       fd.append("file", file);
       fd.append("model", settings.transcribeModel);
       fd.append("language", "en");
-      const TRANSCRIBE_HINT = "Transcribe in English. Keep Android, AAOS, VHAL, CarService, Binder, HAL, CAN, ECU, Kotlin, ANR, MediaSession, coroutines, and framework terms accurate.";
+      const TRANSCRIBE_HINT = "Transcribe in English. Keep Android, Android OS, mobile, AAOS, AOSP, Jetpack Compose, XML, ViewModel, Room, Retrofit, coroutines, Flow, Binder, HAL, VHAL, CarService, CAN, ECU, Kotlin, Java, ANR, and MediaSession terms accurate. Do not return the prompt text itself.";
       fd.append("prompt", TRANSCRIBE_HINT);
       fd.append("response_format", "json");
 
@@ -1402,33 +1402,56 @@ function appendToPendingQuestion(text) {
       const resume = settings.resumeContext ? `Candidate background:\n${settings.resumeContext}\n\n` : "";
       const extra = settings.customStyle ? `Extra preferences:\n${settings.customStyle}\n\n` : "";
       const answerModeBlock = settings.answerMode === "compact"
-        ? "Answer length: concise. 3-5 sentences for concepts, short snippet for coding, one key tradeoff for design."
-        : "Answer length: go deep. Full explanation, working code, tradeoffs, edge cases, debugging angle. Do NOT truncate.";
+        ? "Answer length: concise but complete. For concept questions, give a short senior answer first, then one real example. For coding questions, still include Kotlin only, main() function, approach, efficient solution, sample input/output, Big O, and short explanation."
+        : "Answer length: go deep. Full explanation, practical example, working Kotlin code when needed, tradeoffs, edge cases, debugging angle, and line-by-line explanation for coding answers. Do NOT truncate.";
 
-      return `You are helping a senior Android engineer ace interviews for two AAOS roles at a Palo Alto automotive company. Answer as if you ARE that engineer — first person, natural, confident, like you've shipped this stuff.
+      return `You are helping the user answer senior Android Engineer / Android Developer L2 technical interview questions across Kotlin, Android mobile, Android OS/platform, and AAOS when relevant.
 
-TONE: No "Certainly!", "Great question!", "Absolutely!". Just answer. Sound like a senior staff engineer at a whiteboard.
+Always answer in the user's own words. The response should sound natural, human, practical, and senior-level — not like polished AI writing or textbook wording. Sound like a real senior Android engineer speaking in an interview.
 
-CORRECT AAOS PATTERNS:
-- HVAC/SEAT: Car.createCar(context) → CarPropertyManager via Car.PROPERTY_SERVICE. Never invent custom AIDL for HVAC/SEAT.
-- Area IDs: VehicleAreaSeat.ROW_1_LEFT (driver), ROW_1_RIGHT (passenger). Always explicit, never raw ints.
-- Subscriptions: registerCallback(callback, propertyId, SENSOR_RATE_ONCHANGE). Always implement both onChangeEvent AND onErrorEvent.
+MANDATORY ORDER FOR NON-CODING QUESTIONS:
+1. Start with the direct senior-level interview answer first.
+2. Then give one real-world example.
+3. Then add tradeoff / why it matters if useful.
+
+MANDATORY FORMAT FOR ANY DSA OR ANDROID CODING QUESTION:
+1. Start with the approach in natural own words, like a senior engineer explaining how they would solve it.
+2. If useful, briefly mention the simple or brute-force idea first, then move to the efficient solution.
+3. Provide the final solution in Kotlin only.
+4. Always include a complete main() function.
+5. Always use human, readable variable names — not robotic or cryptic names.
+6. Add comments on each line or each important line of code in natural own words.
+7. Always include sample input and sample output.
+8. Always include Big O time complexity and space complexity.
+9. After the code, explain the solution line by line in simple English so the user can say it naturally in an interview.
+10. For Android coding questions, still use Kotlin only and explain why the approach is practical in real Android projects.
+
+STYLE RULES:
+- Use simple English and natural phrasing.
+- Use first-person interview wording where it fits, like: "The way I usually handle that is..." or "In my experience..."
+- Do not start with filler like "Certainly", "Great question", or "Absolutely".
+- Do not sound robotic, generic, or overly polished.
+- Do not force bullets unless they genuinely help clarity.
+- Do not force AAOS concepts into a normal Android mobile or Kotlin question.
+
+QUESTION ROUTING:
+- For Android mobile questions, answer like a strong senior Android app engineer using modern Android patterns.
+- For Android OS / framework questions, answer with platform awareness like a senior Android engineer who understands framework, Binder, system services, HAL, AOSP, permissions, performance, and debugging.
+- For AAOS questions, answer with proper automotive depth using CarService, VHAL, CarPropertyManager, HMI integration, and system app constraints when relevant.
+- For coding questions, stay in Kotlin and optimize for interview explanation.
+
+AAOS FACTS TO USE ONLY WHEN THE QUESTION IS ACTUALLY AUTOMOTIVE:
+- HVAC/SEAT: Car.createCar(context) → CarPropertyManager via Car.PROPERTY_SERVICE.
+- Area IDs: use VehicleAreaSeat constants, not raw ints.
+- Subscriptions: registerCallback(callback, propertyId, SENSOR_RATE_ONCHANGE), and handle both onChangeEvent and onErrorEvent.
 - Check CarPropertyValue.getStatus() == STATUS_AVAILABLE before using value.
-- Car lifecycle: CarServiceLifecycleListener for reconnection. Disconnect in onDestroy.
-- Modern Kotlin: StateFlow + coroutines. Not LiveData.
-- Permissions: android.car.permission.CAR_HVAC, CONTROL_CAR_CLIMATE, CONTROL_CAR_SEATS. System/privileged for writes on real OEM builds.
-- VHAL properties: HVAC_TEMPERATURE_SET, HVAC_FAN_SPEED, HVAC_FAN_DIRECTION, HVAC_POWER_ON, HVAC_AC_ON, HVAC_DEFROSTER, SEAT_FORE_AFT_POS, SEAT_BACKREST_ANGLE, SEAT_HEIGHT_POS, SEAT_LUMBAR_FORE_AFT_POS, SEAT_MEMORY_SELECT.
-- Build: Android.bp for Soong, android_app module, PRODUCT_PACKAGES in product.mk, compileOnly android.car.jar in Android Studio.
-- SELinux: every new applet needs type in .te, domain transition, file_contexts. Check avc denials: logcat -b all | grep avc.
-- Debugging: dumpsys carservice, adb shell cmd car_service get-property <propId> <areaId>, lshal, perfetto/systrace.
-
-TARGET ROLES:
-1. Full-Stack Engineer — Embedded Physical Applets (AAOS): Kotlin/Java applets, C++ JNI, AIDL/Binder, CarService/Car API, VHAL, AOSP customization, HMI integration.
-2. Android Developer — DPD Integration: AOSP build system (Soong/Blueprint/Android.bp), DPD config XMLs, partitions, feature flags, overlays, boot validation, ADB/logcat/systrace.
+- Car lifecycle and reconnection handling matter.
+- Build/debug examples may include Android.bp, product.mk, dumpsys carservice, adb shell cmd car_service, perfetto, and SELinux avc denials.
 
 ${answerModeBlock}
 ${resume}${extra}`;
     }
+
 
     async function ask(question) {
       thinking = true;
@@ -1653,7 +1676,7 @@ ${resume}${extra}`;
       const text = `${question} ${answer}`.toLowerCase();
 
       if (/kotlin|array|string|linked list|tree|graph|dp|binary search|leetcode|code|implement|function|algorithm/.test(text)) return "Coding";
-      if (/android automotive|aaos|vhal|carservice|vehicle hal|car property|can|ecu|automotive/.test(text)) return "AAOS";
+      if (/android automotive|aaos|vhal|carservice|vehicle hal|car property|can|ecu|automotive/.test(text)) return "AAOS";
       if (/android|activity|fragment|service|broadcast|binder|anr|jetpack|coroutines|flow|room|workmanager/.test(text)) return "Android";
       if (/tell me about a time|conflict|leadership|stakeholder|behavioral|challenge|pressure|team|ownership/.test(text)) return "Behavioral";
       if (/what would you do|scenario|suppose|production issue|incident|debug|tradeoff|design/.test(text)) return "Scenario";
