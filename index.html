@@ -2,1833 +2,734 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Ambient AI</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Android Project Trainer AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0d1321;
-      --panel: #121b2f;
-      --panel-2: #18233b;
-      --panel-3: #0f1729;
-      --border: #2b3858;
-      --text: #eef3ff;
-      --muted: #9fb0d4;
-      --muted2: #7e90b7;
-      --accent: #7da2ff;
-      --accent-2: #6fe2c1;
-      --good: #54d38a;
-      --bad: #f27f7f;
+      --bg: #07111f;
+      --surface: #0f1a2e;
+      --surface2: #14213a;
+      --surface3: #10192b;
+      --border: #2a3b5f;
+      --text: #eef4ff;
+      --muted: #9fb1d1;
+      --muted2: #6f82a8;
+      --accent: #7ca7ff;
+      --accent2: #67e8c8;
+      --good: #55d98b;
+      --warn: #ffd166;
+      --bad: #ff8585;
+      --shadow: rgba(0,0,0,.28);
       --safe-bottom: env(safe-area-inset-bottom);
     }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg);
-    }
-
+    html, body { height: 100%; background: var(--bg); overflow: hidden; }
     body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
       display: flex;
       flex-direction: column;
-      font-family: Inter, system-ui, sans-serif;
-      color: var(--text);
       -webkit-text-size-adjust: 100%;
     }
+    button, input, textarea, select { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
 
+    .app-shell { height: 100%; min-height: 0; display: flex; flex-direction: column; }
     .topbar {
-      flex-shrink: 0;
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 8px;
-      align-items: center;
-      padding: 10px 12px;
+      flex: 0 0 auto; display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center;
+      padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top));
+      background: linear-gradient(180deg, #111d33 0%, #0d1729 100%);
       border-bottom: 1px solid var(--border);
-      background: var(--panel-3);
+      box-shadow: 0 6px 20px var(--shadow);
+      z-index: 5;
     }
+    .title h1 { font-size: 16px; line-height: 1.1; font-weight: 900; letter-spacing: -.02em; }
+    .title p { margin-top: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .status { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .status.on { color: var(--good); } .status.thinking { color: var(--accent2); } .status.err { color: var(--bad); }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; }
+    .icon-btn, .gear-btn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn:active, .gear-btn:active, .btn:active, .primary:active, .secondary:active, .mic-btn:active { transform: scale(.98); opacity: .88; }
 
-    .title { min-width: 0; }
+    .context-strip { flex: 0 0 auto; padding: 8px 10px; border-bottom: 1px solid var(--border); background: #0b1527; }
+    .pill-row { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .pill-row::-webkit-scrollbar { display: none; }
+    .pill { flex: 0 0 auto; padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .pill.active { color: var(--accent2); border-color: rgba(103,232,200,.7); }
+    .live-line { margin-top: 6px; min-height: 18px; font-family: "JetBrains Mono", monospace; font-size: 11px; line-height: 1.45; color: var(--text); word-break: break-word; }
+    .live-line.muted { color: var(--muted); }
+    .meter { height: 4px; margin-top: 6px; border-radius: 999px; background: #263554; overflow: hidden; }
+    .meter-fill { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .08s linear; }
 
-    .title h1 {
-      font-size: 16px;
-      font-weight: 800;
-      line-height: 1.1;
-    }
-
-    .title p {
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 6px 10px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
-      background: var(--panel);
-      white-space: nowrap;
-    }
-
-    .status.on { color: var(--good); }
-    .status.thinking { color: var(--accent-2); }
-    .status.err { color: var(--bad); }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-      flex-shrink: 0;
-    }
-
-    .gear-btn, .icon-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .strip {
-      flex-shrink: 0;
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border);
-      background: #10192c;
-    }
-
-    .strip-top {
-      display: flex;
-      gap: 8px;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      margin-bottom: 8px;
-    }
-
-    .strip-top::-webkit-scrollbar {
-      display: none;
-    }
-
-    .pill {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--muted);
-      background: var(--panel);
-      white-space: nowrap;
-    }
-
-    .pill.active {
-      color: var(--accent-2);
-      border-color: #2c8c7d;
-    }
-
-    .live-text {
-      min-height: 18px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 12px;
-      line-height: 1.4;
-      color: var(--text);
-      word-break: break-word;
-    }
-
-    .live-text.muted {
-      color: var(--muted);
-    }
-
-    .meter {
-      margin-top: 6px;
-      height: 4px;
-      width: 100%;
-      border-radius: 999px;
-      background: #26314b;
-      overflow: hidden;
-    }
-
-    .meter-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      transition: width 0.08s linear;
-    }
-
-    .main {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: grid;
-      grid-template-rows: 1fr auto;
-      overflow: hidden;
-    }
-
+    .main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: 1fr auto; overflow: hidden; }
     .answer-wrap {
-      min-height: 0;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 10px 10px 18px;
+      min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
+      padding: 12px 10px 18px; scroll-behavior: smooth;
     }
+    .answer-inner { max-width: 980px; margin: 0 auto; }
+    .empty { border: 1px dashed var(--border); border-radius: 18px; padding: 18px 14px; background: rgba(20,33,58,.72); color: var(--muted); line-height: 1.65; font-size: 14px; }
+    .empty strong { color: var(--text); }
+    .quick-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+    .quick-card { text-align: left; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); padding: 10px 12px; cursor: pointer; }
+    .quick-card b { display: block; font-size: 12px; margin-bottom: 4px; }
+    .quick-card span { color: var(--muted); font-size: 11px; line-height: 1.4; }
 
-    .empty {
-      border: 1px dashed var(--border);
-      border-radius: 14px;
-      padding: 18px 14px;
-      text-align: center;
-      color: var(--muted);
-      line-height: 1.7;
-      background: var(--panel);
-      font-size: 14px;
-    }
+    .card { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); overflow: hidden; box-shadow: 0 14px 30px rgba(0,0,0,.18); }
+    .card-head { padding: 11px 12px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, var(--surface2), #111d33); display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: start; }
+    .tag { width: 27px; height: 27px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 900; background: #283a60; color: #e9f1ff; }
+    .question-text { font-size: 13px; line-height: 1.45; font-weight: 800; color: #f3f7ff; word-break: break-word; }
+    .type-badge { padding: 5px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 900; white-space: nowrap; }
+    .answer-body { padding: 13px 12px 4px; }
+    .answer-text { font-size: 16px; line-height: 1.62; color: var(--text); word-break: break-word; }
+    .answer-text p { margin: 0 0 12px; }
+    .answer-text h1,.answer-text h2,.answer-text h3 { margin: 16px 0 8px; line-height: 1.25; color: #dce8ff; }
+    .answer-text h1 { font-size: 20px; } .answer-text h2 { font-size: 17px; } .answer-text h3 { font-size: 15px; color: #bcd2ff; }
+    .answer-text ul,.answer-text ol { margin: 8px 0 12px 20px; }
+    .answer-text li { margin-bottom: 7px; }
+    .answer-text strong { color: white; font-weight: 900; }
+    .answer-text code { font-family: "JetBrains Mono", monospace; font-size: 12px; padding: 2px 6px; border-radius: 7px; background: #1a2945; border: 1px solid var(--border); }
+    .answer-text pre { margin: 12px 0 14px; padding: 12px; border-radius: 13px; background: #07111f; border: 1px solid var(--border); overflow-x: auto; overflow-y: auto; max-height: 52vh; -webkit-overflow-scrolling: touch; font-family: "JetBrains Mono", monospace; font-size: 11px; line-height: 1.48; color: #edf5ff; }
+    .answer-text pre code { padding: 0; border: 0; background: transparent; font-size: inherit; }
+    .meta-row { padding: 0 12px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 10px; }
+    .copy-btn { height: 28px; padding: 0 9px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 10px; font-weight: 800; cursor: pointer; }
 
-    .card {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--panel);
-      overflow: hidden;
-    }
+    .history-panel { flex: 0 0 auto; max-height: 38vh; min-height: 0; border-top: 1px solid var(--border); background: #0b1527; display: flex; flex-direction: column; }
+    .history-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    .history-head h3 { font-size: 12px; font-weight: 900; }
+    .history-list { min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .history-item { width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid rgba(42,59,95,.55); padding: 10px 12px; color: var(--text); cursor: pointer; }
+    .history-q { font-size: 12px; font-weight: 800; line-height: 1.4; margin-bottom: 5px; }
+    .history-a { font-size: 11px; color: var(--muted); line-height: 1.4; margin-bottom: 5px; }
+    .history-meta { display: flex; gap: 7px; flex-wrap: wrap; color: var(--muted2); font-family: "JetBrains Mono", monospace; font-size: 10px; }
 
-    .card-head {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      background: var(--panel-2);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
+    .type-bar { flex: 0 0 auto; display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--border); background: #0b1527; }
+    .type-input { min-height: 42px; max-height: 110px; resize: none; overflow-y: auto; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); color: var(--text); padding: 10px 12px; outline: none; font-size: 14px; line-height: 1.35; }
+    .type-input:focus { border-color: var(--accent); }
+    .send-btn { width: 44px; height: 42px; border: 0; border-radius: 13px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #07111f; cursor: pointer; font-weight: 900; }
 
-    .card-head-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
+    .bottom { flex: 0 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 9px 10px calc(9px + var(--safe-bottom)); border-top: 1px solid var(--border); background: #0d1729; }
+    .mic-btn { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface2); color: var(--text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+    .mic-btn.on { border-color: var(--accent2); box-shadow: 0 0 0 7px rgba(103,232,200,.08); }
+    .mic-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .bottom-text { min-width: 0; }
+    .bottom-text .main-text { font-size: 13px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bottom-text .sub-text { margin-top: 3px; font-size: 11px; color: var(--muted); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bottom-actions { display: flex; gap: 6px; align-items: center; }
+    .btn { height: 33px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .resume-btn, .to-bottom-btn { position: fixed; right: 12px; z-index: 20; border: 1px solid var(--border); border-radius: 999px; color: #07111f; background: linear-gradient(90deg, var(--accent), var(--accent2)); font-size: 12px; font-weight: 900; padding: 10px 13px; box-shadow: 0 10px 25px var(--shadow); cursor: pointer; }
+    .resume-btn { bottom: calc(84px + var(--safe-bottom)); }
+    .to-bottom-btn { bottom: calc(132px + var(--safe-bottom)); }
+    .hidden { display: none !important; }
 
-    .tag {
-      min-width: 24px;
-      height: 24px;
-      border-radius: 8px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 10px;
-      font-weight: 800;
-      background: #283758;
-      color: #d8e5ff;
-      flex-shrink: 0;
-    }
+    .overlay { position: fixed; inset: 0; z-index: 100; background: rgba(5, 9, 18, .88); display: flex; align-items: center; justify-content: center; padding: 14px; overflow-y: auto; }
+    .setup { width: 100%; max-width: 760px; max-height: 92vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 22px; background: #10192c; padding: 16px; box-shadow: 0 20px 60px var(--shadow); }
+    .setup h2 { font-size: 23px; line-height: 1.15; font-weight: 900; margin-bottom: 7px; }
+    .setup p { color: var(--muted); font-size: 13px; line-height: 1.55; margin-bottom: 13px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .label { display: block; margin: 0 0 7px; color: #dbe7ff; font-size: 12px; font-weight: 900; }
+    .setup input,.setup select,.setup textarea { width: 100%; padding: 11px 12px; border-radius: 13px; border: 1px solid var(--border); background: #16233c; color: var(--text); outline: none; font-size: 14px; }
+    .setup textarea { min-height: 96px; resize: vertical; }
+    .toggle { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 13px; border: 1px solid var(--border); background: #16233c; color: var(--text); }
+    .toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+    .primary,.secondary { width: 100%; border-radius: 13px; cursor: pointer; font-weight: 900; }
+    .primary { padding: 14px; border: 0; color: #07111f; background: linear-gradient(90deg, var(--accent), var(--accent2)); margin-top: 10px; }
+    .secondary { padding: 12px; border: 1px solid var(--border); color: var(--text); background: #16233c; margin-bottom: 8px; }
+    .small-note { font-size: 11px !important; color: var(--muted2) !important; margin-top: -4px !important; }
 
-    .question-text {
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.4;
-      color: #eff4ff;
-      word-break: break-word;
-    }
-
-    .type-badge {
-      padding: 5px 8px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      font-size: 10px;
-      font-weight: 800;
-      color: var(--muted);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .answer-body {
-      padding: 10px;
-    }
-
-    .answer-text {
-      font-size: 17px;
-      line-height: 1.6;
-      color: var(--text);
-      word-break: break-word;
-    }
-
-    .answer-text p { margin-bottom: 12px; }
-    .answer-text ul, .answer-text ol { margin: 0 0 12px 18px; }
-    .answer-text li { margin-bottom: 8px; }
-    .answer-text strong { color: #fff; font-weight: 800; }
-
-    .answer-text code {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 6px;
-      background: #1c2740;
-      border: 1px solid var(--border);
-    }
-
-    .answer-text pre {
-      margin: 10px 0 14px;
-      padding: 10px;
-      border-radius: 10px;
-      background: #0b1220;
-      border: 1px solid var(--border);
-      overflow-x: auto;
-      white-space: pre;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 11px;
-      line-height: 1.45;
-      color: #eaf2ff;
-      max-height: 180px;
-    }
-
-    .meta {
-      padding: 0 10px 10px;
-      color: var(--muted);
-      font-family: "JetBrains Mono", monospace;
-      font-size: 10px;
-    }
-
-    .history-panel {
-      border-top: 1px solid var(--border);
-      background: var(--panel-3);
-      max-height: 42vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .history-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .history-head h3 {
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .history-list {
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      min-height: 0;
-    }
-
-    .history-item {
-      width: 100%;
-      text-align: left;
-      background: transparent;
-      border: 0;
-      border-bottom: 1px solid rgba(43,56,88,0.6);
-      padding: 10px 12px;
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .history-q {
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.4;
-      margin-bottom: 6px;
-      color: #eef4ff;
-    }
-
-    .history-a {
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.4;
-      margin-bottom: 6px;
-    }
-
-    .history-meta {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 10px;
-      color: var(--muted2);
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .bottom {
-      flex-shrink: 0;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 8px;
-      align-items: center;
-      padding: 10px 10px calc(10px + var(--safe-bottom));
-      border-top: 1px solid var(--border);
-      background: #0f1729;
-    }
-
-    .mic-btn {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .mic-btn.on {
-      border-color: #2c8c7d;
-      box-shadow: 0 0 0 6px rgba(111, 226, 193, 0.08);
-    }
-
-    .mic-btn svg {
-      width: 22px;
-      height: 22px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .bottom-text {
-      min-width: 0;
-    }
-
-    .bottom-text .main-text {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--text);
-    }
-
-    .bottom-text .sub-text {
-      margin-top: 3px;
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    .bottom-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn {
-      height: 32px;
-      padding: 0 8px;
-      border-radius: 9px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      font-weight: 700;
-      font-size: 11px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .resume-btn {
-      position: fixed;
-      right: 12px;
-      bottom: calc(80px + env(safe-area-inset-bottom));
-      z-index: 20;
-      padding: 11px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      color: #07111f;
-      font-weight: 800;
-      font-size: 12px;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
-      cursor: pointer;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      background: rgba(5, 9, 18, 0.84);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-      overflow-y: auto;
-    }
-
-    .setup {
-      width: 100%;
-      max-width: 620px;
-      max-height: 92vh;
-      overflow-y: auto;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: #10192c;
-      padding: 16px;
-    }
-
-    .setup h2 {
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-
-    .setup p {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
-      margin-bottom: 14px;
-    }
-
-    .label {
-      display: block;
-      font-size: 12px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      color: #d9e6ff;
-    }
-
-    .setup input,
-    .setup select,
-    .setup textarea {
-      width: 100%;
-      margin-bottom: 12px;
-      padding: 12px 13px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #16213a;
-      color: var(--text);
-      outline: none;
-      font-size: 14px;
-    }
-
-    .setup textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    .toggle {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 13px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #16213a;
-      margin-bottom: 12px;
-    }
-
-    .toggle input {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-      accent-color: var(--accent);
-    }
-
-    .primary {
-      width: 100%;
-      padding: 14px;
-      border: 0;
-      border-radius: 12px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      color: #07111f;
-      font-weight: 800;
-      font-size: 15px;
-      cursor: pointer;
-    }
-
-    .secondary {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: #16213a;
-      color: var(--text);
-      font-weight: 700;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
-
-    .type-bar {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      background: var(--panel-3);
-      border-top: 1px solid var(--border);
-    }
-    .type-bar input {
-      flex: 1; padding: 10px 13px;
-      border-radius: 10px; border: 1px solid var(--border);
-      background: var(--panel); color: var(--text);
-      font-family: Inter, sans-serif; font-size: 14px;
-      outline: none; -webkit-appearance: none;
-    }
-    .type-bar input:focus { border-color: var(--accent); }
-    .type-bar input::placeholder { color: var(--muted2); }
-    .type-send {
-      width: 40px; height: 40px; border-radius: 10px;
-      border: none; background: var(--accent); color: #fff;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .type-send:active { opacity: 0.75; }
-
-    @media (min-width: 431px) {
-      .title h1 { font-size: 18px; }
+    @media (min-width: 700px) {
+      .title h1 { font-size: 19px; }
       .title p { font-size: 12px; }
-      .status { font-size: 12px; padding: 7px 11px; }
-      .live-text { font-size: 13px; }
-      .answer-text { font-size: 18px; line-height: 1.65; }
-      .question-text { font-size: 13px; }
-      .bottom { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
-      .btn { height: 34px; padding: 0 10px; font-size: 12px; }
-      .mic-btn { width: 50px; height: 50px; }
+      .answer-text { font-size: 17px; }
+      .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .form-grid.two { grid-template-columns: 1fr 1fr; }
+      .bottom-actions .btn { padding: 0 11px; }
+    }
+    @media (max-width: 430px) {
+      .bottom-actions { gap: 4px; }
+      .bottom-actions .btn { padding: 0 7px; }
+      .btn.optional-mobile { display: none; }
+      .answer-text { font-size: 16px; }
     }
   </style>
 </head>
 <body>
+<div class="app-shell">
   <div class="overlay" id="overlay">
     <div class="setup">
-      <h2>Ambient AI</h2>
-      <p>Continuous or ask-once interview copilot with mobile-first compact UI.</p>
+      <h2>Android Project Trainer AI</h2>
+      <p>Use this as a real-time Android mentor, coding helper, interview copilot, and project builder. Your key stays in this browser’s localStorage.</p>
 
-      <label class="label" for="keyInput">OpenAI API key</label>
-      <input type="password" id="keyInput" placeholder="sk-..." autocomplete="off" />
-
-      <label class="label" for="modelSelect">Answer model</label>
-      <select id="modelSelect">
-        <option value="gpt-5.4-mini">gpt-5.4-mini (fast)</option>
-        <option value="gpt-5.4" selected>gpt-5.4 (best)</option>
-      </select>
-
-      <label class="label" for="transcribeModelSelect">Transcription model</label>
-      <select id="transcribeModelSelect">
-        <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
-        <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
-      </select>
-
-      <label class="label" for="answerModeSelect">Answer mode</label>
-      <select id="answerModeSelect">
-        <option value="compact">Compact</option>
-        <option value="full">Full</option>
-      </select>
-
-      <label class="label" for="listenModeSelect">Listening mode</label>
-      <select id="listenModeSelect">
-        <option value="ask_once">Ask once</option>
-        <option value="continuous">Continuous</option>
-      </select>
-
-      <div class="toggle">
-        <input type="checkbox" id="speakToggle" />
-        <label for="speakToggle">Speak answers aloud</label>
+      <div class="form-grid two">
+        <div>
+          <label class="label" for="keyInput">OpenAI API key</label>
+          <input type="password" id="keyInput" placeholder="sk-..." autocomplete="off" />
+        </div>
+        <div>
+          <label class="label" for="modelInput">Answer model</label>
+          <input id="modelInput" placeholder="gpt-5" />
+        </div>
       </div>
 
-      <div class="toggle">
-        <input type="checkbox" id="wakeWordToggle" />
-        <label for="wakeWordToggle">Require wake phrase: “hey assistant”</label>
+      <div class="form-grid two">
+        <div>
+          <label class="label" for="transcribeModelInput">Transcription model</label>
+          <input id="transcribeModelInput" placeholder="gpt-4o-mini-transcribe" />
+        </div>
+        <div>
+          <label class="label" for="answerModeSelect">Answer mode</label>
+          <select id="answerModeSelect">
+            <option value="compact">Compact interview answer</option>
+            <option value="project">Project trainer step-by-step</option>
+            <option value="full">Full deep explanation</option>
+          </select>
+        </div>
       </div>
 
-      <label class="label" for="resumeContext">Resume / project context</label>
-      <textarea id="resumeContext" placeholder="Paste resume highlights, projects, ownership, metrics, Android mobile, Android OS, AAOS, Kotlin work, debugging stories..."></textarea>
+      <div class="form-grid two">
+        <div>
+          <label class="label" for="listenModeSelect">Listening mode</label>
+          <select id="listenModeSelect">
+            <option value="ask_once">Ask once</option>
+            <option value="continuous">Continuous follow-ups</option>
+          </select>
+        </div>
+        <div>
+          <label class="label" for="domainSelect">Default domain</label>
+          <select id="domainSelect">
+            <option value="auto">Auto detect</option>
+            <option value="android_mobile">Android Mobile</option>
+            <option value="aaos">Android Automotive / AAOS</option>
+            <option value="aosp">AOSP / Framework</option>
+            <option value="dsa">DSA / Kotlin coding</option>
+            <option value="system_design">Android system design</option>
+          </select>
+        </div>
+      </div>
 
-      <button class="secondary" onclick="pickResumeFile()">Upload resume file (.txt, .md, .pdf, .docx)</button>
+      <div class="form-grid two">
+        <div class="toggle"><input type="checkbox" id="speakToggle" /><label for="speakToggle">Speak answers aloud</label></div>
+        <div class="toggle"><input type="checkbox" id="wakeWordToggle" /><label for="wakeWordToggle">Require wake phrase: “hey assistant”</label></div>
+      </div>
+      <div class="form-grid two">
+        <div class="toggle"><input type="checkbox" id="autoScrollToggle" checked /><label for="autoScrollToggle">Auto-scroll while streaming</label></div>
+        <div class="toggle"><input type="checkbox" id="strictCodeToggle" checked /><label for="strictCodeToggle">Always Kotlin + main() for coding</label></div>
+      </div>
+
+      <label class="label" for="resumeContext">Your background / project context</label>
+      <textarea id="resumeContext"></textarea>
+      <button class="secondary" onclick="pickResumeFile()">Upload resume/context file (.txt, .md, .pdf, .docx)</button>
       <input type="file" id="resumeFile" class="hidden" accept=".txt,.md,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" />
-      <p id="uploadStatus">No file uploaded.</p>
+      <p class="small-note" id="uploadStatus">No file uploaded.</p>
 
-      <label class="label" for="customStyle">Optional extra answer style</label>
-      <textarea id="customStyle" placeholder="Example: natural senior answers, Kotlin for coding, Android mobile or AAOS depending on the question, practical debugging, concise communication."></textarea>
+      <label class="label" for="customStyle">Extra answer style / rules</label>
+      <textarea id="customStyle"></textarea>
+      <p class="small-note">Tip: keep “Project trainer step-by-step” selected when you are building apps from scratch.</p>
 
-      <button class="primary" onclick="saveSettings()">Start</button>
+      <button class="primary" onclick="saveSettings()">Save and Start</button>
     </div>
   </div>
 
   <div class="topbar">
     <div class="title">
-      <h1>Ambient AI</h1>
-      <p>Continuous interview copilot</p>
+      <h1>Android Project Trainer AI</h1>
+      <p>Projects · Clean Architecture · DSA · AAOS · Debugging</p>
     </div>
-
-    <div class="status" id="statusBadge">
-      <div class="dot"></div>
-      <span id="statusText">Stopped</span>
-    </div>
-
-    <button class="gear-btn" onclick="openSettings()">⚙</button>
+    <div class="status" id="statusBadge"><div class="dot"></div><span id="statusText">Stopped</span></div>
+    <button class="gear-btn" onclick="openSettings()" aria-label="Settings">⚙</button>
   </div>
 
-  <div class="strip">
-    <div class="strip-top">
-      <div class="pill" id="listenModePill">Ask once</div>
-      <div class="pill" id="modePill">Compact</div>
-      <div class="pill" id="wakePill">Wake phrase optional</div>
-      <div class="pill" id="filterPill">Self-read filter on</div>
+  <div class="context-strip">
+    <div class="pill-row">
+      <div class="pill active" id="listenModePill">Ask once</div>
+      <div class="pill active" id="modePill">Project</div>
+      <div class="pill" id="domainPill">Auto domain</div>
+      <div class="pill active" id="scrollPill">Auto-scroll on</div>
+      <div class="pill active" id="filterPill">Self-read filter on</div>
     </div>
-    <div class="live-text muted" id="liveText">Ready.</div>
+    <div class="live-line muted" id="liveText">Ready. Type a question or tap mic.</div>
     <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
   </div>
 
   <div class="main">
     <div class="answer-wrap" id="answerWrap">
-      <div class="empty" id="emptyState">
-        Tap the mic and ask a question.<br>
-        In continuous mode, the app tries to ignore you reading the last answer and wait for a new question.
-      </div>
+      <div class="answer-inner">
+        <div class="empty" id="emptyState">
+          <strong>Ask anything about Android projects or coding.</strong><br>
+          Examples: “Create a notes app with Clean Architecture”, “Solve merge intervals in Kotlin”, “Explain UseCase vs ViewModel”, “Debug AAOS audio focus issue”, or “Design an Android offline-first app”.
+          <div class="quick-grid">
+            <button class="quick-card" onclick="quickAsk('Create a complete beginner friendly Android To-Do app using Kotlin, Jetpack Compose, MVVM, Clean Architecture, UseCase, Repository, StateFlow and Hilt. Teach me step by step from project creation.')"><b>Build Android project</b><span>Step-by-step Clean Architecture app</span></button>
+            <button class="quick-card" onclick="quickAsk('Solve merge intervals in Kotlin. Include approach, efficient solution, main function, sample input output, complexity and interview explanation.')"><b>Solve coding problem</b><span>Kotlin + main() + explanation</span></button>
+            <button class="quick-card" onclick="quickAsk('Explain UseCase vs ViewModel with a real Android project example and senior interview answer.')"><b>Architecture answer</b><span>UseCase, ViewModel, Repository</span></button>
+            <button class="quick-card" onclick="quickAsk('Give me an AAOS debugging approach for a media app issue where audio focus and MediaSession state are not matching.')"><b>AAOS debugging</b><span>Logs, RCA, platform + app analysis</span></button>
+          </div>
+        </div>
 
-      <div class="card hidden" id="latestCard">
-        <div class="card-head">
-          <div class="card-head-left">
+        <div class="card hidden" id="latestCard">
+          <div class="card-head">
             <div class="tag">Q</div>
             <div class="question-text" id="latestQuestion">—</div>
+            <div class="type-badge" id="typeBadge">General</div>
           </div>
-          <div class="type-badge" id="typeBadge">General</div>
+          <div class="answer-body"><div class="answer-text" id="latestAnswer"><p>—</p></div></div>
+          <div class="meta-row"><span id="latestMeta">—</span><button class="copy-btn" onclick="copyLatestAnswer()">Copy answer</button></div>
         </div>
-        <div class="answer-body">
-          <div class="answer-text" id="latestAnswer"><p>—</p></div>
-        </div>
-        <div class="meta" id="latestMeta">—</div>
       </div>
     </div>
 
     <div class="history-panel hidden" id="historyPanel">
-      <div class="history-head">
-        <h3>Previous answers</h3>
-        <button class="icon-btn" onclick="toggleHistory()">⌄</button>
-      </div>
+      <div class="history-head"><h3>Previous answers</h3><button class="icon-btn" onclick="toggleHistory()">⌄</button></div>
       <div class="history-list" id="historyList"></div>
     </div>
   </div>
 
+  <button class="to-bottom-btn hidden" id="toBottomBtn" onclick="forceScrollBottom()">↓ Bottom</button>
   <button class="resume-btn hidden" id="resumeBtn" onclick="resumeListening()">Resume listening</button>
 
   <div class="type-bar">
-    <input type="text" id="typeInput" placeholder="Type a question and press Enter…" autocomplete="off" autocorrect="off" spellcheck="false" />
-    <button class="type-send" onclick="sendTyped()">
-      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-    </button>
+    <textarea class="type-input" id="typeInput" placeholder="Type your Android/coding question… Shift+Enter for new line" rows="1"></textarea>
+    <button class="send-btn" onclick="sendTyped()" aria-label="Send">➤</button>
   </div>
 
   <div class="bottom">
-    <button class="mic-btn" id="micBtn" onclick="toggleMic()">
-      <svg viewBox="0 0 24 24">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-        <line x1="12" y1="19" x2="12" y2="23"/>
-        <line x1="8" y1="23" x2="16" y2="23"/>
-      </svg>
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()" aria-label="Microphone">
+      <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </button>
-
-    <div class="bottom-text">
-      <div class="main-text" id="bottomMain">Tap mic to start</div>
-      <div class="sub-text" id="bottomSub">Continuous mode can auto-answer follow-ups.</div>
-    </div>
-
+    <div class="bottom-text"><div class="main-text" id="bottomMain">Tap mic or type</div><div class="sub-text" id="bottomSub">Real-time Android trainer ready.</div></div>
     <div class="bottom-actions">
-      <button class="btn" onclick="scrollToLatest()">Latest</button>
+      <button class="btn" onclick="forceScrollBottom()">Bottom</button>
       <button class="btn" onclick="toggleHistory()">History</button>
-      <button class="btn" onclick="exportHistory()">Export</button>
+      <button class="btn optional-mobile" onclick="exportHistory()">Export</button>
       <button class="btn" onclick="clearAnswer()">Clear</button>
     </div>
   </div>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script>
+  const DEFAULT_CONTEXT = `I am Sai Peravalli. I am preparing for Senior Android Developer, Android Automotive, AAOS, AOSP/framework, and Kotlin coding interviews. I want to learn by building real Android projects from scratch. I prefer Kotlin by default, runnable code, clean architecture, clear explanations, and senior-style interview answers. My project experience includes SiriusXM Android Automotive / AAOS across OEMs, MediaSession, audio focus, Browse, Now Playing, Search, presets/favorites, voice search, OEM issue analysis, logs, RCA, app/service/platform debugging, and PR fixes. Use SiriusXM, Meta Portal, and WorkChat examples when useful.`;
+  const DEFAULT_STYLE = `Teach me like a beginner building the app, but help me answer like a senior Android engineer. For coding, include approach, Kotlin solution, main function, comments, sample input/output, complexity, and explanation. For Android projects, go step by step from project creation, Gradle setup, package structure, Clean Architecture layers, UseCase, Repository, ViewModel, UI, testing, and interview explanation.`;
 
-  <script>
-    let settings = {
-      apiKey: localStorage.getItem("aai_key") || "",
-      model: localStorage.getItem("aai_model") || "gpt-5.4",
-      transcribeModel: localStorage.getItem("aai_transcribe_model") || "gpt-4o-mini-transcribe",
-      answerMode: localStorage.getItem("aai_answer_mode") || "compact",
-      listenMode: localStorage.getItem("aai_listen_mode") || "ask_once",
-      resumeContext: localStorage.getItem("aai_resume") || "",
-      customStyle: localStorage.getItem("aai_style") || "",
-      speakAnswers: localStorage.getItem("aai_speak") === "1",
-      requireWakePhrase: localStorage.getItem("aai_wake_phrase") === "1"
-    };
+  let settings = {
+    apiKey: localStorage.getItem("apt_key") || "",
+    model: localStorage.getItem("apt_model") || "gpt-5",
+    transcribeModel: localStorage.getItem("apt_transcribe_model") || "gpt-4o-mini-transcribe",
+    answerMode: localStorage.getItem("apt_answer_mode") || "project",
+    listenMode: localStorage.getItem("apt_listen_mode") || "ask_once",
+    domain: localStorage.getItem("apt_domain") || "auto",
+    resumeContext: localStorage.getItem("apt_resume") || DEFAULT_CONTEXT,
+    customStyle: localStorage.getItem("apt_style") || DEFAULT_STYLE,
+    speakAnswers: localStorage.getItem("apt_speak") === "1",
+    requireWakePhrase: localStorage.getItem("apt_wake") === "1",
+    autoScroll: localStorage.getItem("apt_autoscroll") !== "0",
+    strictCode: localStorage.getItem("apt_strict_code") !== "0"
+  };
 
-    let active = false;
-    let thinking = false;
-    let isSpeaking = false;
-    let historyDrawerOpen = false;
+  let active = false, thinking = false, isSpeaking = false, historyDrawerOpen = false;
+  let mediaStream = null, mediaRecorder = null, audioChunks = [], audioContext = null, analyser = null, sourceNode = null, pcmData = null, monitorRaf = null;
+  let isSegmentRecording = false, speakingStartedAt = 0, lastVoiceAt = 0;
+  let chatHistory = [], qaHistory = JSON.parse(localStorage.getItem("apt_qa_history") || "[]");
+  let lastAnswerText = "", lastAnswerAt = 0, latestPlainAnswer = "";
+  let pendingQuestionText = "", pendingQuestionTimer = null, pendingQuestionStartedAt = 0;
+  let userIsReading = false;
 
-    let mediaStream = null;
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let audioContext = null;
-    let analyser = null;
-    let sourceNode = null;
-    let pcmData = null;
-    let monitorRaf = null;
+  const VOICE_THRESHOLD = 0.020;
+  const SILENCE_AFTER_SPEECH_MS = 1800;
+  const MIN_SPEECH_MS = 350;
+  const MAX_SEGMENT_MS = 90000;
+  const WAKE_PHRASE = "hey assistant";
+  const STOP_COMMANDS = ["stop listening", "pause listening", "stop mic", "stop"];
+  const END_COMMANDS = ["answer now", "that's it", "done", "go ahead"];
+  const SELF_READ_WINDOW_MS = 60000;
+  const SELF_READ_SIMILARITY_THRESHOLD = 0.55;
+  const QUESTION_MERGE_WINDOW_MS = 2800;
+  const MAX_PENDING_QUESTION_MS = 16000;
 
-    let isSegmentRecording = false;
-    let speakingStartedAt = 0;
-    let lastVoiceAt = 0;
+  const byId = id => document.getElementById(id);
+  const hide = id => byId(id).classList.add("hidden");
+  const show = id => byId(id).classList.remove("hidden");
 
-    let chatHistory = [];
-    let qaHistory = JSON.parse(localStorage.getItem("aai_qa_history") || "[]");
+  restoreSettings(); refreshPills(); renderHistory(); wireInput();
+  if (settings.apiKey) hide("overlay");
 
-    let lastAnswerText = "";
-    let lastAnswerAt = 0;
-    let ignoredCount = 0;
+  function restoreSettings() {
+    byId("keyInput").value = settings.apiKey;
+    byId("modelInput").value = settings.model;
+    byId("transcribeModelInput").value = settings.transcribeModel;
+    byId("answerModeSelect").value = settings.answerMode;
+    byId("listenModeSelect").value = settings.listenMode;
+    byId("domainSelect").value = settings.domain;
+    byId("resumeContext").value = settings.resumeContext;
+    byId("customStyle").value = settings.customStyle;
+    byId("speakToggle").checked = settings.speakAnswers;
+    byId("wakeWordToggle").checked = settings.requireWakePhrase;
+    byId("autoScrollToggle").checked = settings.autoScroll;
+    byId("strictCodeToggle").checked = settings.strictCode;
+  }
 
-    let pendingQuestionText = "";
-    let pendingQuestionTimer = null;
-    let pendingQuestionStartedAt = 0;
+  function saveSettings() {
+    const key = byId("keyInput").value.trim();
+    if (!key.startsWith("sk-")) { alert("Enter a valid OpenAI API key starting with sk-"); return; }
+    settings.apiKey = key;
+    settings.model = byId("modelInput").value.trim() || "gpt-5";
+    settings.transcribeModel = byId("transcribeModelInput").value.trim() || "gpt-4o-mini-transcribe";
+    settings.answerMode = byId("answerModeSelect").value;
+    settings.listenMode = byId("listenModeSelect").value;
+    settings.domain = byId("domainSelect").value;
+    settings.resumeContext = byId("resumeContext").value.trim();
+    settings.customStyle = byId("customStyle").value.trim();
+    settings.speakAnswers = byId("speakToggle").checked;
+    settings.requireWakePhrase = byId("wakeWordToggle").checked;
+    settings.autoScroll = byId("autoScrollToggle").checked;
+    settings.strictCode = byId("strictCodeToggle").checked;
+    localStorage.setItem("apt_key", settings.apiKey);
+    localStorage.setItem("apt_model", settings.model);
+    localStorage.setItem("apt_transcribe_model", settings.transcribeModel);
+    localStorage.setItem("apt_answer_mode", settings.answerMode);
+    localStorage.setItem("apt_listen_mode", settings.listenMode);
+    localStorage.setItem("apt_domain", settings.domain);
+    localStorage.setItem("apt_resume", settings.resumeContext);
+    localStorage.setItem("apt_style", settings.customStyle);
+    localStorage.setItem("apt_speak", settings.speakAnswers ? "1" : "0");
+    localStorage.setItem("apt_wake", settings.requireWakePhrase ? "1" : "0");
+    localStorage.setItem("apt_autoscroll", settings.autoScroll ? "1" : "0");
+    localStorage.setItem("apt_strict_code", settings.strictCode ? "1" : "0");
+    refreshPills(); hide("overlay");
+  }
 
-    const VOICE_THRESHOLD = 0.020;
-    const SILENCE_AFTER_SPEECH_MS = 2200;
-    const MIN_SPEECH_MS = 400;
-    const MAX_SEGMENT_MS = 90000;
+  function refreshPills() {
+    byId("listenModePill").textContent = settings.listenMode === "continuous" ? "Continuous" : "Ask once";
+    byId("modePill").textContent = settings.answerMode === "project" ? "Project trainer" : (settings.answerMode === "full" ? "Full" : "Compact");
+    byId("domainPill").textContent = settings.domain === "auto" ? "Auto domain" : settings.domain.replace(/_/g, " ");
+    byId("domainPill").className = "pill" + (settings.domain !== "auto" ? " active" : "");
+    byId("scrollPill").textContent = settings.autoScroll ? "Auto-scroll on" : "Auto-scroll off";
+    byId("scrollPill").className = "pill" + (settings.autoScroll ? " active" : "");
+    byId("filterPill").className = "pill active";
+  }
 
-    const WAKE_PHRASE = "hey assistant";
-    const STOP_COMMANDS = ["stop listening", "pause listening", "stop mic", "stop"];
-    const END_COMMANDS = ["answer now", "that's it", "done", "go ahead"];
-
-    // Self-read filter — catches you reading the answer aloud
-    // Lower threshold = more aggressive filtering
-    // Longer window = protects longer after answer arrives
-    const SELF_READ_WINDOW_MS = 60000;
-    const SELF_READ_SIMILARITY_THRESHOLD = 0.55;
-
-    const QUESTION_MERGE_WINDOW_MS = 4200;
-    const MAX_PENDING_QUESTION_MS = 20000;
-
-    restoreSettings();
-    refreshPills();
-    renderHistory();
-    if (settings.apiKey) hide("overlay");
-
-    function byId(id) { return document.getElementById(id); }
-
-    function sendTyped() {
-      const input = byId("typeInput");
-      const q = input.value.trim();
-      if (!q) return;
-      if (!settings.apiKey) { openSettings(); return; }
-      input.value = "";
-      ask(q);
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const inp = byId("typeInput");
-      if (inp) inp.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); sendTyped(); }
-      });
+  function wireInput() {
+    const input = byId("typeInput");
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendTyped(); }
     });
-    function hide(id) { byId(id).classList.add("hidden"); }
-    function show(id) { byId(id).classList.remove("hidden"); }
+    input.addEventListener("input", () => {
+      input.style.height = "auto";
+      input.style.height = Math.min(input.scrollHeight, 110) + "px";
+    });
+    const wrap = byId("answerWrap");
+    wrap.addEventListener("scroll", () => {
+      const distance = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight;
+      userIsReading = distance > 80;
+      byId("toBottomBtn").classList.toggle("hidden", distance <= 140);
+    }, { passive: true });
+  }
 
-    function restoreSettings() {
-      byId("keyInput").value = settings.apiKey;
-      byId("modelSelect").value = settings.model;
-      byId("transcribeModelSelect").value = settings.transcribeModel;
-      byId("answerModeSelect").value = settings.answerMode;
-      byId("listenModeSelect").value = settings.listenMode;
-      byId("resumeContext").value = settings.resumeContext;
-      byId("customStyle").value = settings.customStyle;
-      byId("speakToggle").checked = settings.speakAnswers;
-      byId("wakeWordToggle").checked = settings.requireWakePhrase;
-    }
+  function sendTyped() {
+    const input = byId("typeInput");
+    const q = input.value.trim();
+    if (!q) return;
+    if (!settings.apiKey) { openSettings(); return; }
+    input.value = ""; input.style.height = "auto";
+    ask(q);
+  }
+  function quickAsk(q) { if (!settings.apiKey) { openSettings(); return; } ask(q); }
+  function openSettings() { stopMic(); show("overlay"); }
+  function setStatus(mode, text) { const badge = byId("statusBadge"); badge.className = "status" + (mode ? " " + mode : ""); byId("statusText").textContent = text; }
+  function setBottom(main, sub) { byId("bottomMain").textContent = main; byId("bottomSub").textContent = sub; }
+  function setLive(text, muted = false) { byId("liveText").textContent = text; byId("liveText").className = "live-line" + (muted ? " muted" : ""); }
 
-    function refreshPills() {
-      byId("listenModePill").textContent = settings.listenMode === "ask_once" ? "Ask once" : "Continuous";
-      byId("listenModePill").className = "pill active";
-      byId("modePill").textContent = settings.answerMode === "compact" ? "Compact" : "Full";
-      byId("modePill").className = "pill active";
-      byId("wakePill").textContent = settings.requireWakePhrase ? "Wake phrase on" : "Wake phrase optional";
-      byId("wakePill").className = "pill" + (settings.requireWakePhrase ? " active" : "");
-      byId("filterPill").textContent = "Self-read filter on";
-      byId("filterPill").className = "pill active";
-    }
+  function toggleMic() { active ? stopMic() : startMic(); }
+  async function startMic() {
+    if (!settings.apiKey) { openSettings(); return; }
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === "suspended") await audioContext.resume();
+      sourceNode = audioContext.createMediaStreamSource(mediaStream);
+      analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
+      pcmData = new Float32Array(analyser.fftSize); sourceNode.connect(analyser);
+      active = true; byId("micBtn").classList.add("on"); hide("resumeBtn");
+      setStatus("on", "Listening"); setBottom("Listening...", "Ask your question and pause briefly."); setLive("Listening...", true);
+      startMonitorLoop();
+    } catch (err) { setStatus("err", "Mic denied"); setBottom("Microphone access failed", err.message || "Allow microphone access."); }
+  }
+  function stopMic() {
+    active = false; thinking = false; isSpeaking = false; isSegmentRecording = false; audioChunks = []; clearPendingQuestion();
+    if (monitorRaf) cancelAnimationFrame(monitorRaf); monitorRaf = null;
+    if (mediaRecorder && mediaRecorder.state !== "inactive") { try { mediaRecorder.stop(); } catch(e) {} }
+    if (sourceNode) { try { sourceNode.disconnect(); } catch(e) {} sourceNode = null; }
+    if (audioContext) { try { audioContext.close(); } catch(e) {} audioContext = null; }
+    analyser = null; pcmData = null;
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    try { speechSynthesis.cancel(); } catch(e) {}
+    byId("micBtn").classList.remove("on"); byId("meterFill").style.width = "0%";
+    setStatus("", "Stopped"); setBottom("Tap mic or type", "Real-time Android trainer ready."); setLive("Ready. Type a question or tap mic.", true);
+  }
+  function resumeListening() { startMic(); }
 
-    function saveSettings() {
-      const key = byId("keyInput").value.trim();
-      if (!key.startsWith("sk-")) {
-        alert("Enter a valid OpenAI key starting with sk-");
-        return;
+  function startSegmentRecording() {
+    if (!mediaStream || thinking || isSpeaking || isSegmentRecording) return;
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: getBestMimeType() });
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      if (!audioChunks.length || !active) return;
+      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" }); audioChunks = [];
+      await handleRecordedSegment(blob);
+    };
+    mediaRecorder.start(); isSegmentRecording = true; speakingStartedAt = Date.now(); lastVoiceAt = Date.now();
+    setLive("Speech detected... keep speaking", false); setBottom("Recording question", "Pause naturally when the question is finished.");
+  }
+  function stopSegmentRecording() { if (!mediaRecorder || mediaRecorder.state === "inactive") return; isSegmentRecording = false; try { mediaRecorder.stop(); } catch(e) {} }
+  function startMonitorLoop() {
+    const loop = () => {
+      if (!active || !analyser || thinking || isSpeaking) { monitorRaf = requestAnimationFrame(loop); return; }
+      analyser.getFloatTimeDomainData(pcmData);
+      let sum = 0; for (let i = 0; i < pcmData.length; i++) sum += pcmData[i] * pcmData[i];
+      const rms = Math.sqrt(sum / pcmData.length); byId("meterFill").style.width = Math.min(100, Math.max(0, (rms / 0.12) * 100)).toFixed(0) + "%";
+      const hasVoice = rms > VOICE_THRESHOLD; const nowTs = Date.now();
+      if (hasVoice) { lastVoiceAt = nowTs; if (!isSegmentRecording) startSegmentRecording(); setLive("Listening to question...", true); }
+      else if (isSegmentRecording) {
+        const speechDuration = nowTs - speakingStartedAt, silenceDuration = nowTs - lastVoiceAt, segmentDuration = nowTs - speakingStartedAt;
+        if (speechDuration >= MIN_SPEECH_MS && (silenceDuration >= SILENCE_AFTER_SPEECH_MS || segmentDuration >= MAX_SEGMENT_MS)) stopSegmentRecording();
       }
-
-      settings.apiKey = key;
-      settings.model = byId("modelSelect").value;
-      settings.transcribeModel = byId("transcribeModelSelect").value;
-      settings.answerMode = byId("answerModeSelect").value;
-      settings.listenMode = byId("listenModeSelect").value;
-      settings.resumeContext = byId("resumeContext").value.trim();
-      settings.customStyle = byId("customStyle").value.trim();
-      settings.speakAnswers = byId("speakToggle").checked;
-      settings.requireWakePhrase = byId("wakeWordToggle").checked;
-
-      localStorage.setItem("aai_key", settings.apiKey);
-      localStorage.setItem("aai_model", settings.model);
-      localStorage.setItem("aai_transcribe_model", settings.transcribeModel);
-      localStorage.setItem("aai_answer_mode", settings.answerMode);
-      localStorage.setItem("aai_listen_mode", settings.listenMode);
-      localStorage.setItem("aai_resume", settings.resumeContext);
-      localStorage.setItem("aai_style", settings.customStyle);
-      localStorage.setItem("aai_speak", settings.speakAnswers ? "1" : "0");
-      localStorage.setItem("aai_wake_phrase", settings.requireWakePhrase ? "1" : "0");
-
-      refreshPills();
-      hide("overlay");
-    }
-
-    function openSettings() {
-      stopMic();
-      show("overlay");
-    }
-
-    function setStatus(mode, text) {
-      const badge = byId("statusBadge");
-      badge.className = "status" + (mode ? " " + mode : "");
-      byId("statusText").textContent = text;
-    }
-
-    function setBottom(main, sub) {
-      byId("bottomMain").textContent = main;
-      byId("bottomSub").textContent = sub;
-    }
-
-    function setLive(text, muted = false) {
-      const el = byId("liveText");
-      el.textContent = text;
-      el.className = "live-text" + (muted ? " muted" : "");
-    }
-
-    function toggleMic() {
-      active ? stopMic() : startMic();
-    }
-
-    async function startMic() {
-      if (!settings.apiKey) {
-        openSettings();
-        return;
-      }
-
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            channelCount: 1
-          }
-        });
-
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        sourceNode = audioContext.createMediaStreamSource(mediaStream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
-        pcmData = new Float32Array(analyser.fftSize);
-        sourceNode.connect(analyser);
-
-        active = true;
-        byId("micBtn").classList.add("on");
-        byId("resumeBtn").classList.add("hidden");
-        setStatus("on", "Listening");
-        setBottom("Listening...", "Ask your question and pause briefly.");
-        setLive("Listening...", true);
-
-        startMonitorLoop();
-      } catch (err) {
-        setStatus("err", "Mic denied");
-        setBottom("Microphone access failed", err.message || "Allow microphone access.");
-      }
-    }
-
-    function stopMic() {
-      active = false;
-      thinking = false;
-      isSpeaking = false;
-      isSegmentRecording = false;
-      audioChunks = [];
-      
-      clearPendingQuestion();
-
-      if (monitorRaf) {
-        cancelAnimationFrame(monitorRaf);
-        monitorRaf = null;
-      }
-
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        try { mediaRecorder.stop(); } catch (e) {}
-      }
-
-      if (sourceNode) {
-        try { sourceNode.disconnect(); } catch (e) {}
-        sourceNode = null;
-      }
-
-      if (audioContext) {
-        try { audioContext.close(); } catch (e) {}
-        audioContext = null;
-      }
-
-      analyser = null;
-      pcmData = null;
-
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(t => t.stop());
-        mediaStream = null;
-      }
-
-      speechSynthesis.cancel();
-
-      byId("micBtn").classList.remove("on");
-      byId("meterFill").style.width = "0%";
-      setStatus("", "Stopped");
-      setBottom("Tap mic to start", "Continuous mode can auto-answer follow-ups.");
-      setLive("Ready.", true);
-    }
-
-    function resumeListening() {
-      startMic();
-    }
-
-    function startSegmentRecording() {
-      if (!mediaStream || thinking || isSpeaking || isSegmentRecording) return;
-
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: getBestMimeType() });
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) audioChunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        if (!audioChunks.length || !active) return;
-        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
-        audioChunks = [];
-        await handleRecordedSegment(blob);
-      };
-
-      mediaRecorder.start();
-      isSegmentRecording = true;
-      speakingStartedAt = Date.now();
-      lastVoiceAt = Date.now();
-
-      setLive("Speech detected... keep speaking", false);
-      setBottom("Recording question", "Pause naturally when the question is finished.");
-    }
-
-    function stopSegmentRecording() {
-      if (!mediaRecorder || mediaRecorder.state === "inactive") return;
-      isSegmentRecording = false;
-      try { mediaRecorder.stop(); } catch (e) {}
-    }
-
-    function startMonitorLoop() {
-      const loop = () => {
-        if (!active || !analyser || thinking || isSpeaking) {
-          monitorRaf = requestAnimationFrame(loop);
-          return;
-        }
-
-        analyser.getFloatTimeDomainData(pcmData);
-
-        let sum = 0;
-        for (let i = 0; i < pcmData.length; i++) sum += pcmData[i] * pcmData[i];
-        const rms = Math.sqrt(sum / pcmData.length);
-
-        const meterPct = Math.min(100, Math.max(0, (rms / 0.12) * 100));
-        byId("meterFill").style.width = meterPct.toFixed(0) + "%";
-
-        const hasVoice = rms > VOICE_THRESHOLD;
-        const now = Date.now();
-
-        if (hasVoice) {
-          lastVoiceAt = now;
-          if (!isSegmentRecording) startSegmentRecording();
-          setLive("Listening to question...", true);
-        } else if (isSegmentRecording) {
-          const speechDuration = now - speakingStartedAt;
-          const silenceDuration = now - lastVoiceAt;
-          const segmentDuration = now - speakingStartedAt;
-
-          if (
-            speechDuration >= MIN_SPEECH_MS &&
-            (
-              silenceDuration >= SILENCE_AFTER_SPEECH_MS ||
-              segmentDuration >= MAX_SEGMENT_MS
-            )
-          ) {
-            stopSegmentRecording();
-          }
-        }
-
-        monitorRaf = requestAnimationFrame(loop);
-      };
-
       monitorRaf = requestAnimationFrame(loop);
-    }
-
-    function getBestMimeType() {
-      const options = [
-        "audio/webm;codecs=opus",
-        "audio/webm",
-        "audio/mp4",
-        "audio/ogg;codecs=opus"
-      ];
-      for (const type of options) {
-        if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) return type;
-      }
-      return "";
-    }
-
-    async function handleRecordedSegment(blob) {
-      if (!active || thinking || isSpeaking) return;
-
-      try {
-        setStatus("thinking", "Transcribing");
-        setBottom("Transcribing...", "Sending audio to OpenAI.");
-        setLive("Transcribing...", false);
-
-        let transcription = await transcribeAudio(blob);
-        if (!transcription || !transcription.text) {
-          setStatus("on", "Listening");
-          setBottom("Listening...", "No transcript captured.");
-          setLive("Listening...", true);
-          return;
-        }
-
-        let transcript = transcription.text.trim();
-        setLive(transcript, false);
-
-        const normalized = transcript.toLowerCase();
-
-        if (STOP_COMMANDS.includes(normalized)) {
-          stopMic();
-          return;
-        }
-
-        for (const cmd of END_COMMANDS) {
-          if (normalized.endsWith(cmd)) {
-            transcript = transcript.slice(0, -cmd.length).trim();
-            break;
-          }
-        }
-
-        if (!transcript) {
-          setStatus("on", "Listening");
-          setBottom("Listening...", "Waiting for next question.");
-          setLive("Listening...", true);
-          return;
-        }
-
-        const question = normalizeQuestion(transcript);
-        if (!question) {
-          setStatus("on", "Listening");
-          setBottom("Wake phrase required", `Say "${WAKE_PHRASE}" before your question.`);
-          setLive("Wake phrase required.", true);
-          return;
-        }
-
-        const decision = decideWhetherToAnswer(question);
-
-        if (decision.action === "ignore") {
-          ignoredCount += 1;
-          setStatus("on", "Listening");
-          setBottom("Ignored repeated speech", decision.reason);
-          setLive("Ignored as likely self-read / repeated answer.", true);
-          return;
-        }
-
-        appendToPendingQuestion(question);
-
-        setStatus("on", "Listening");
-        setBottom("Collecting question...", "Waiting briefly in case more of the question is coming.");
-        setLive(`Buffered question: ${shorten(pendingQuestionText, 120)}`, false);
-        return;
-
-      } catch (err) {
-        setStatus("err", "Transcription error");
-        setBottom("OpenAI transcription failed", err.message || "Unknown error");
-        setLive("Transcription failed.", true);
-      }
-    }
-
-    async function transcribeAudio(blob) {
-      const file = new File([blob], "question.webm", { type: blob.type || "audio/webm" });
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("model", settings.transcribeModel);
-      fd.append("language", "en");
-      const TRANSCRIBE_HINT = "Transcribe in English. Keep Android, Android OS, mobile, AAOS, AOSP, Jetpack Compose, XML, ViewModel, Room, Retrofit, coroutines, Flow, Binder, HAL, VHAL, CarService, CAN, ECU, Kotlin, Java, ANR, and MediaSession terms accurate. Do not return the prompt text itself.";
-      fd.append("prompt", TRANSCRIBE_HINT);
-      fd.append("response_format", "json");
-
-      const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + settings.apiKey },
-        body: fd
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error?.message || ("HTTP " + res.status));
-
-      let text = (data.text || "").trim();
-      if (text === TRANSCRIBE_HINT || text.startsWith("Transcribe in English.")) text = "";
-
-      return { text, speaker: null };
-    }
-
-    function normalizeQuestion(spoken) {
-      const raw = spoken.trim();
-      if (!settings.requireWakePhrase) return raw;
-
-      const lower = raw.toLowerCase();
-      const idx = lower.indexOf(WAKE_PHRASE);
-      if (idx === -1) return "";
-
-      return raw.slice(idx + WAKE_PHRASE.length).trim().replace(/^[:,\-\s]+/, "");
-    }
-
-    function tokenize(text) {
-      return text
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, " ")
-        .split(/\s+/)
-        .filter(w => w.length > 2);
-    }
-
-    function similarityScore(a, b) {
-      const aa = tokenize(a);
-      const bb = tokenize(b);
-      if (!aa.length || !bb.length) return 0;
-
-      const setA = new Set(aa);
-      const setB = new Set(bb);
-      let intersection = 0;
-      for (const token of setA) {
-        if (setB.has(token)) intersection++;
-      }
-      const union = new Set([...setA, ...setB]).size || 1;
-      return intersection / union;
-    }
-
-    function looksLikeNewQuestion(text) {
-      const t = text.trim().toLowerCase();
-      if (t.includes("?")) return true;
-
-      const patterns = [
-        /^what\b/, /^why\b/, /^how\b/, /^when\b/, /^where\b/, /^which\b/,
-        /^can you\b/, /^could you\b/, /^would you\b/, /^tell me\b/,
-        /^explain\b/, /^describe\b/, /^suppose\b/, /^walk me through\b/,
-        /^give me\b/, /^let's say\b/, /^if\b/, /^in this case\b/,
-        /\bwhat happens\b/, /\bwhy did\b/, /\bhow would you\b/,
-        /\bcan you explain\b/, /\btell me about\b/, /\bdebug\b/, /\bdesign\b/,
-        /\bfollow up\b/, /\bone more thing\b/
-      ];
-
-      return patterns.some(re => re.test(t) || re.test(" " + t));
-    }
-
-    function ignoreIfMatchesLastAnswer(transcript) {
-      if (!lastAnswerText || !lastAnswerAt) {
-        return { ignore: false, similarity: 0, recent: false };
-      }
-
-      const ageMs = Date.now() - lastAnswerAt;
-      const recent = ageMs <= SELF_READ_WINDOW_MS;
-      const similarity = similarityScore(transcript, lastAnswerText);
-
-      if (recent && similarity >= SELF_READ_SIMILARITY_THRESHOLD) {
-        return { ignore: true, similarity, recent };
-      }
-
-      return { ignore: false, similarity, recent };
-    }
-
-    function exportHistory() {
-      if (!qaHistory.length) {
-        alert("No history to export yet.");
-        return;
-      }
-
-      const lines = [];
-      lines.push("AMBIENT AI — INTERVIEW HISTORY EXPORT");
-      lines.push("Exported: " + new Date().toLocaleString());
-      lines.push("Total Q&As: " + qaHistory.length);
-      lines.push("=".repeat(60));
-      lines.push("");
-
-      qaHistory.forEach((item, i) => {
-        lines.push(`Q${i + 1} [${item.type || "General"}] — ${item.timestamp || ""}`);
-        lines.push("-".repeat(40));
-        lines.push("QUESTION:");
-        lines.push(item.question || "—");
-        lines.push("");
-        lines.push("ANSWER:");
-        lines.push(item.answer || "—");
-        lines.push("");
-        lines.push("=".repeat(60));
-        lines.push("");
-      });
-
-      const text = lines.join("\n");
-
-      // Try download first, fall back to clipboard
-      try {
-        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "interview-history-" + Date.now() + ".txt";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        // Mobile fallback — copy to clipboard
-        navigator.clipboard.writeText(text).then(() => {
-          alert("History copied to clipboard! (" + qaHistory.length + " Q&As)\nPaste into Notes or email.");
-        }).catch(() => {
-          alert("Export failed. Try using the History panel to copy individual answers.");
-        });
-      }
-    }
-
-    function decideWhetherToAnswer(transcript) {
-      if (settings.listenMode !== "continuous") {
-        return { action: "accept", reason: "ask-once mode" };
-      }
-
-      const ignoreCheck = ignoreIfMatchesLastAnswer(transcript);
-      if (ignoreCheck.ignore) {
-        return { action: "ignore", reason: `Matched recent answer (similarity ${ignoreCheck.similarity.toFixed(2)})` };
-      }
-
-      // Extra check: if transcript contains a long run of words from the last answer
-      // This catches reading the answer aloud even when overall similarity is low
-      if (lastAnswerText && lastAnswerAt) {
-        const ageMs = Date.now() - lastAnswerAt;
-        if (ageMs <= SELF_READ_WINDOW_MS) {
-          const answerWords = tokenize(lastAnswerText);
-          const transcriptWords = tokenize(transcript);
-          // Check if any 6-word sequence from transcript appears in answer
-          for (let i = 0; i <= transcriptWords.length - 6; i++) {
-            const chunk = transcriptWords.slice(i, i + 6).join(" ");
-            if (answerWords.join(" ").includes(chunk)) {
-              return { action: "ignore", reason: "Phrase overlap with recent answer detected" };
-            }
-          }
-        }
-      }
-
-      if (looksLikeNewQuestion(transcript)) {
-        return { action: "accept", reason: "looks like new question" };
-      }
-
-      if (ignoreCheck.similarity < 0.35) {
-        return { action: "accept", reason: "low similarity to last answer" };
-      }
-
-      return { action: "ignore", reason: `Possible repeat / self-read (similarity ${ignoreCheck.similarity.toFixed(2)})` };
-    }
-
-    function mergeQuestionParts(existingText, nextText) {
-  const a = existingText.trim();
-  const b = nextText.trim();
-
-  if (!a) return b;
-  if (!b) return a;
-
-  if (a.toLowerCase() === b.toLowerCase()) return a;
-  if (a.toLowerCase().endsWith(b.toLowerCase())) return a;
-
-  return a + " " + b;
-}
-
-function clearPendingQuestion() {
-  pendingQuestionText = "";
-  pendingQuestionStartedAt = 0;
-
-  if (pendingQuestionTimer) {
-    clearTimeout(pendingQuestionTimer);
-    pendingQuestionTimer = null;
+    };
+    monitorRaf = requestAnimationFrame(loop);
   }
-}
+  function getBestMimeType() { for (const type of ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"]) if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) return type; return ""; }
 
-function appendToPendingQuestion(text) {
-  const cleaned = text.trim();
-  if (!cleaned) return;
-
-  const nowTs = Date.now();
-
-  if (!pendingQuestionText) {
-    pendingQuestionText = cleaned;
-    pendingQuestionStartedAt = nowTs;
-  } else {
-    pendingQuestionText = mergeQuestionParts(pendingQuestionText, cleaned);
+  async function handleRecordedSegment(blob) {
+    if (!active || thinking || isSpeaking) return;
+    try {
+      setStatus("thinking", "Transcribing"); setBottom("Transcribing...", "Sending audio to OpenAI."); setLive("Transcribing...", false);
+      const transcription = await transcribeAudio(blob);
+      let transcript = (transcription.text || "").trim();
+      if (!transcript) { setStatus("on", "Listening"); setBottom("Listening...", "No transcript captured."); setLive("Listening...", true); return; }
+      setLive(transcript, false);
+      const normalized = transcript.toLowerCase();
+      if (STOP_COMMANDS.includes(normalized)) { stopMic(); return; }
+      for (const cmd of END_COMMANDS) if (normalized.endsWith(cmd)) { transcript = transcript.slice(0, -cmd.length).trim(); break; }
+      const question = normalizeQuestion(transcript);
+      if (!question) { setStatus("on", "Listening"); setBottom("Wake phrase required", `Say "${WAKE_PHRASE}" before your question.`); setLive("Wake phrase required.", true); return; }
+      const decision = decideWhetherToAnswer(question);
+      if (decision.action === "ignore") { setStatus("on", "Listening"); setBottom("Ignored repeated speech", decision.reason); setLive("Ignored as likely self-read / repeated answer.", true); return; }
+      appendToPendingQuestion(question);
+      setStatus("on", "Listening"); setBottom("Collecting question...", "Waiting briefly in case more of the question is coming."); setLive(`Buffered question: ${shorten(pendingQuestionText, 140)}`, false);
+    } catch (err) { setStatus("err", "Transcription error"); setBottom("OpenAI transcription failed", err.message || "Unknown error"); setLive("Transcription failed.", true); }
+  }
+  async function transcribeAudio(blob) {
+    const file = new File([blob], "question.webm", { type: blob.type || "audio/webm" });
+    const fd = new FormData(); fd.append("file", file); fd.append("model", settings.transcribeModel); fd.append("language", "en");
+    fd.append("prompt", "Transcribe Android, Kotlin, AAOS, AOSP, Jetpack Compose, XML, ViewModel, UseCase, Repository, Room, Retrofit, Hilt, Coroutines, Flow, Binder, HAL, VHAL, CarService, ECU, CAN, ANR, MediaSession terms accurately. Do not return this prompt text."); fd.append("response_format", "json");
+    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { "Authorization": "Bearer " + settings.apiKey }, body: fd });
+    const data = await res.json(); if (!res.ok || data.error) throw new Error(data.error?.message || ("HTTP " + res.status));
+    return { text: (data.text || "").trim() };
   }
 
-  if (pendingQuestionTimer) {
-    clearTimeout(pendingQuestionTimer);
-  }
-
-  const ageMs = nowTs - pendingQuestionStartedAt;
-  const waitMs = ageMs >= MAX_PENDING_QUESTION_MS ? 250 : QUESTION_MERGE_WINDOW_MS;
-
-  pendingQuestionTimer = setTimeout(async () => {
-    const finalQuestion = pendingQuestionText.trim();
-    clearPendingQuestion();
-
-    if (finalQuestion) {
-      await ask(finalQuestion);
+  function normalizeQuestion(spoken) { const raw = spoken.trim(); if (!settings.requireWakePhrase) return raw; const lower = raw.toLowerCase(); const idx = lower.indexOf(WAKE_PHRASE); return idx === -1 ? "" : raw.slice(idx + WAKE_PHRASE.length).trim().replace(/^[:,\-\s]+/, ""); }
+  function tokenize(text) { return text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2); }
+  function similarityScore(a, b) { const aa = tokenize(a), bb = tokenize(b); if (!aa.length || !bb.length) return 0; const setA = new Set(aa), setB = new Set(bb); let inter = 0; for (const t of setA) if (setB.has(t)) inter++; return inter / (new Set([...setA, ...setB]).size || 1); }
+  function looksLikeNewQuestion(text) { const t = text.trim().toLowerCase(); if (t.includes("?")) return true; return [/^what\b/,/^why\b/,/^how\b/,/^when\b/,/^where\b/,/^which\b/,/^can you\b/,/^could you\b/,/^tell me\b/,/^explain\b/,/^solve\b/,/^create\b/,/^build\b/,/^implement\b/,/^debug\b/,/^design\b/,/^walk me through\b/,/^give me\b/,/^let's say\b/,/^if\b/,/\bwhat happens\b/,/\bhow would you\b/,/\bfollow up\b/].some(re => re.test(t)); }
+  function decideWhetherToAnswer(transcript) {
+    if (settings.listenMode !== "continuous") return { action: "accept", reason: "ask-once mode" };
+    if (lastAnswerText && Date.now() - lastAnswerAt <= SELF_READ_WINDOW_MS) {
+      const sim = similarityScore(transcript, lastAnswerText);
+      if (sim >= SELF_READ_SIMILARITY_THRESHOLD) return { action: "ignore", reason: `Matched recent answer (${sim.toFixed(2)})` };
+      const answerWords = tokenize(lastAnswerText).join(" "), transcriptWords = tokenize(transcript);
+      for (let i = 0; i <= transcriptWords.length - 6; i++) if (answerWords.includes(transcriptWords.slice(i, i + 6).join(" "))) return { action: "ignore", reason: "Phrase overlap with recent answer" };
     }
-  }, waitMs);
-}
+    return looksLikeNewQuestion(transcript) ? { action: "accept", reason: "new question" } : { action: "accept", reason: "low confidence but accepted" };
+  }
+  function mergeQuestionParts(a, b) { a = a.trim(); b = b.trim(); if (!a) return b; if (!b) return a; if (a.toLowerCase() === b.toLowerCase()) return a; if (a.toLowerCase().endsWith(b.toLowerCase())) return a; return a + " " + b; }
+  function clearPendingQuestion() { pendingQuestionText = ""; pendingQuestionStartedAt = 0; if (pendingQuestionTimer) clearTimeout(pendingQuestionTimer); pendingQuestionTimer = null; }
+  function appendToPendingQuestion(text) { const nowTs = Date.now(); pendingQuestionText = pendingQuestionText ? mergeQuestionParts(pendingQuestionText, text) : text.trim(); if (!pendingQuestionStartedAt) pendingQuestionStartedAt = nowTs; if (pendingQuestionTimer) clearTimeout(pendingQuestionTimer); const wait = nowTs - pendingQuestionStartedAt >= MAX_PENDING_QUESTION_MS ? 250 : QUESTION_MERGE_WINDOW_MS; pendingQuestionTimer = setTimeout(async () => { const q = pendingQuestionText.trim(); clearPendingQuestion(); if (q) await ask(q); }, wait); }
 
-    function buildSystemPrompt() {
-      const resume = settings.resumeContext ? `Candidate background:\n${settings.resumeContext}\n\n` : "";
-      const extra = settings.customStyle ? `Extra preferences:\n${settings.customStyle}\n\n` : "";
-      const answerModeBlock = settings.answerMode === "compact"
-        ? "Answer length: concise but complete. For concept questions, give a short senior answer first, then one real example. For coding questions, still include Kotlin only, main() function, approach, efficient solution, sample input/output, Big O, and short explanation."
-        : "Answer length: go deep. Full explanation, practical example, working Kotlin code when needed, tradeoffs, edge cases, debugging angle, and line-by-line explanation for coding answers. Do NOT truncate.";
+  function buildSystemPrompt(question) {
+    const answerModeBlock = settings.answerMode === "compact"
+      ? "Answer mode: compact. Give a senior-style direct answer first, then one practical example. Keep it medium-short unless it is a coding question."
+      : settings.answerMode === "project"
+      ? "Answer mode: project trainer. Teach step by step from setup to code to testing to interview explanation. Do not skip folder structure or why each layer exists."
+      : "Answer mode: full. Go deep with practical examples, edge cases, tradeoffs, debugging angle, testing, and line-by-line explanation when coding.";
 
-      return `You are helping the user answer senior Android Engineer / Android Developer L2 technical interview questions across Kotlin, Android mobile, Android OS/platform, and AAOS when relevant.
+    const domainBlock = settings.domain === "auto"
+      ? "Domain selection: auto-detect whether the question is Android mobile, AAOS, AOSP/framework, DSA/coding, system design, debugging, behavioral, or project-building. Do not force AAOS unless relevant."
+      : `Domain selection: prioritize ${settings.domain.replace(/_/g, " ")} unless the user clearly asks something else.`;
 
-Always answer in the user's own words. The response should sound natural, human, practical, and senior-level — not like polished AI writing or textbook wording. Sound like a real senior Android engineer speaking in an interview.
+    const strictCodeBlock = settings.strictCode ? "For every DSA, algorithm, Kotlin, or Android coding request: use Kotlin by default, include an efficient approach, complete runnable main() where applicable, comments on important lines, sample input/output, time and space complexity, and a simple interview explanation." : "For coding requests: use Kotlin unless another language is requested, and keep code practical.";
 
-MANDATORY ORDER FOR NON-CODING QUESTIONS:
-1. Start with the direct senior-level interview answer first.
-2. Then give one real-world example.
-3. Then add tradeoff / why it matters if useful.
+    return `You are Sai's personal Android Project Trainer AI, coding mentor, and senior Android interview copilot.
 
-MANDATORY FORMAT FOR ANY DSA OR ANDROID CODING QUESTION:
-1. Start with the approach in natural own words, like a senior engineer explaining how they would solve it.
-2. If useful, briefly mention the simple or brute-force idea first, then move to the efficient solution.
-3. Provide the final solution in Kotlin only.
-4. Always include a complete main() function.
-5. Always use human, readable variable names — not robotic or cryptic names.
-6. Add comments on each line or each important line of code in natural own words.
-7. Always include sample input and sample output.
-8. Always include Big O time complexity and space complexity.
-9. After the code, explain the solution line by line in simple English so the user can say it naturally in an interview.
-10. For Android coding questions, still use Kotlin only and explain why the approach is practical in real Android projects.
+PRIMARY GOAL:
+Help the user solve any Android project, coding project, DSA problem, Android interview question, AAOS/AOSP debugging scenario, architecture design, or real-world implementation task.
 
-STYLE RULES:
-- Use simple English and natural phrasing.
-- Use first-person interview wording where it fits, like: "The way I usually handle that is..." or "In my experience..."
-- Do not start with filler like "Certainly", "Great question", or "Absolutely".
-- Do not sound robotic, generic, or overly polished.
-- Do not force bullets unless they genuinely help clarity.
-- Do not force AAOS concepts into a normal Android mobile or Kotlin question.
+USER BACKGROUND:
+${settings.resumeContext || DEFAULT_CONTEXT}
 
-QUESTION ROUTING:
-- For Android mobile questions, answer like a strong senior Android app engineer using modern Android patterns.
-- For Android OS / framework questions, answer with platform awareness like a senior Android engineer who understands framework, Binder, system services, HAL, AOSP, permissions, performance, and debugging.
-- For AAOS questions, answer with proper automotive depth using CarService, VHAL, CarPropertyManager, HMI integration, and system app constraints when relevant.
-- For coding questions, stay in Kotlin and optimize for interview explanation.
-
-AAOS FACTS TO USE ONLY WHEN THE QUESTION IS ACTUALLY AUTOMOTIVE:
-- HVAC/SEAT: Car.createCar(context) → CarPropertyManager via Car.PROPERTY_SERVICE.
-- Area IDs: use VehicleAreaSeat constants, not raw ints.
-- Subscriptions: registerCallback(callback, propertyId, SENSOR_RATE_ONCHANGE), and handle both onChangeEvent and onErrorEvent.
-- Check CarPropertyValue.getStatus() == STATUS_AVAILABLE before using value.
-- Car lifecycle and reconnection handling matter.
-- Build/debug examples may include Android.bp, product.mk, dumpsys carservice, adb shell cmd car_service, perfetto, and SELinux avc denials.
+EXTRA USER STYLE:
+${settings.customStyle || DEFAULT_STYLE}
 
 ${answerModeBlock}
-${resume}${extra}`;
-    }
+${domainBlock}
+${strictCodeBlock}
 
+GLOBAL RESPONSE RULES:
+- Start with the best practical answer first.
+- Use simple natural English, like a senior engineer speaking in an interview.
+- Do not sound robotic or overly polished.
+- Avoid filler like "Certainly" or "Great question".
+- Prefer Kotlin for Android and coding.
+- When the user is learning, explain why, not just what.
+- If the user asks for a project, guide them file-by-file.
+- If the user asks for an interview answer, give a senior-style answer first, then one real project example.
+- If the user asks for debugging, include app-layer and platform/system-layer checks when relevant.
+- If the question is simple, answer directly without overengineering.
 
-    async function ask(question) {
-      thinking = true;
-      setStatus("thinking", "Thinking");
-      setBottom("Generating answer...", "Streaming answer as it arrives.");
-      setLive(question, false);
+ANDROID PROJECT TRAINING DEFAULT:
+When asked to create/build/practice an Android app, follow this order:
+1. App goal and what the user will learn.
+2. Android Studio project creation settings: language, minSdk, package name, Compose/XML choice.
+3. Gradle dependencies.
+4. Clean Architecture folder structure.
+5. Domain layer: models, repository interface, use cases.
+6. Data layer: DTO/entity, API/DAO, repository implementation, mappers.
+7. Presentation layer: UI state, ViewModel, UI events, Compose/XML screen.
+8. DI layer: Hilt modules.
+9. MainActivity setup.
+10. Data flow explanation from UI to ViewModel to UseCase to Repository to API/Room and back.
+11. Unit tests and what to test.
+12. Interview explanation.
 
-      const started = Date.now();
-      chatHistory.push({ role: "user", content: question });
-      if (chatHistory.length > 8) chatHistory = chatHistory.slice(-8);
+DEFAULT ANDROID ARCHITECTURE:
+- presentation: Activity/Compose/XML, ViewModel, UI state, UI events.
+- domain: pure Kotlin models, repository interfaces, use cases, business rules.
+- data: API services, DTOs, Room entities/DAO, repository implementations, mappers.
+- di: Hilt modules.
+- UseCase owns business decisions. ViewModel owns screen state. Repository owns data access.
 
-      hide("emptyState");
-      show("latestCard");
-      byId("latestQuestion").textContent = question;
-      byId("latestAnswer").innerHTML = "<p><em>Thinking...</em></p>";
-      byId("latestMeta").textContent = "Generating...";
-      byId("typeBadge").textContent = "General";
-      scrollToLatest();
+CODING / DSA FORMAT:
+For algorithm problems, use this format:
+1. Senior-style approach in natural words.
+2. Brute-force idea briefly if useful.
+3. Efficient Kotlin solution.
+4. Complete main() function.
+5. Sample input and output.
+6. Time and space complexity.
+7. Line-by-line explanation.
+8. How to say it in an interview.
 
-      try {
-        const maxTokens = settings.answerMode === "compact" ? 600 : 3000;
-        const selectedModel = chooseModelForQuestion(question);
+ANDROID CODING FORMAT:
+For Android implementation problems, include:
+- File/package path.
+- Kotlin code.
+- Why this file exists.
+- Why this logic belongs in ViewModel/UseCase/Repository/etc.
+- Common mistake to avoid.
+- Test strategy.
 
-        const payload = {
-          model: selectedModel,
-          messages: [
-            { role: "system", content: buildSystemPrompt() },
-            ...chatHistory
-          ],
-          stream: true
-        };
+AAOS / AUTOMOTIVE RULES:
+Only use AAOS details when relevant. For AAOS, mention practical areas like MediaSession, audio focus, CarService, CarPropertyManager, VHAL, HMI, source switching, lifecycle, driver distraction constraints, OEM logs, dumpsys, bugreport, Perfetto, and app + platform ownership.
+For vehicle properties: Car.createCar(context) -> CarPropertyManager using Car.PROPERTY_SERVICE; use VehicleAreaSeat constants for seat areas; register callbacks; check CarPropertyValue.status == STATUS_AVAILABLE before using values; handle lifecycle/reconnection.
 
-        if (selectedModel.startsWith("gpt-5")) {
-          payload.max_completion_tokens = maxTokens;
-        } else {
-          payload.max_tokens = maxTokens;
-          payload.temperature = 0.2;
+DEBUGGING RULES:
+For bug triage, include:
+- Simple-English summary.
+- Expected vs actual.
+- App-layer analysis.
+- System/platform-layer analysis when relevant.
+- Evidence/logs to check.
+- Likely root cause.
+- Ownership callout.
+- One-line next action.
+
+PROJECT IDEAS MODE:
+If user says they don't know what to build, suggest practical Android projects in increasing difficulty: To-Do, Notes, Weather, Expense Tracker, Recipe/Food, Offline-first News, Chat mock, Media app, AAOS simulator, CalmRoute, and explain what concepts each project teaches.
+
+CURRENT USER QUESTION:
+${question || ""}`;
+  }
+
+  async function ask(question) {
+    thinking = true; userIsReading = false; latestPlainAnswer = "";
+    setStatus("thinking", "Thinking"); setBottom("Generating answer...", "Answer will stream below."); setLive(question, false);
+    hide("emptyState"); show("latestCard");
+    byId("latestQuestion").textContent = question; byId("latestAnswer").innerHTML = "<p><em>Thinking...</em></p>"; byId("latestMeta").textContent = "Generating..."; byId("typeBadge").textContent = detectQuestionType(question, "");
+    forceScrollBottom(false);
+    const started = Date.now();
+    chatHistory.push({ role: "user", content: question }); if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+    try {
+      const selectedModel = settings.model || "gpt-5";
+      const payload = { model: selectedModel, messages: [{ role: "system", content: buildSystemPrompt(question) }, ...chatHistory], stream: true };
+      const maxTokens = settings.answerMode === "compact" ? 1000 : settings.answerMode === "project" ? 4500 : 6500;
+      if (/^(gpt-5|o\d|o[\w-]+)/i.test(selectedModel)) payload.max_completion_tokens = maxTokens; else { payload.max_tokens = maxTokens; payload.temperature = 0.2; }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + settings.apiKey }, body: JSON.stringify(payload) });
+      if (!res.ok || !res.body) { const errData = await res.json().catch(() => ({})); throw new Error(errData.error?.message || ("HTTP " + res.status)); }
+      const reader = res.body.getReader(); const decoder = new TextDecoder("utf-8"); let fullText = "", buffer = "";
+      while (true) {
+        const { value, done } = await reader.read(); if (done) break;
+        buffer += decoder.decode(value, { stream: true }); const lines = buffer.split("\n"); buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim(); if (!trimmed.startsWith("data:")) continue;
+          const dataStr = trimmed.slice(5).trim(); if (dataStr === "[DONE]") continue;
+          try { const data = JSON.parse(dataStr); const delta = data.choices?.[0]?.delta?.content || ""; if (!delta) continue; fullText += delta; latestPlainAnswer = fullText; byId("latestAnswer").innerHTML = formatAnswer(fullText); maybeAutoScroll(); } catch(e) {}
         }
-
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + settings.apiKey
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok || !res.body) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error?.message || ("HTTP " + res.status));
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let fullText = "";
-        let buffer = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-
-            const dataStr = trimmed.slice(5).trim();
-            if (dataStr === "[DONE]") continue;
-
-            try {
-              const data = JSON.parse(dataStr);
-              const delta = data.choices?.[0]?.delta?.content || "";
-              if (!delta) continue;
-              fullText += delta;
-              byId("latestAnswer").innerHTML = formatAnswer(fullText);
-              scrollToLatest();
-            } catch (_) {}
-          }
-        }
-
-        const answer = fullText.trim() || "No answer returned.";
-        const ms = ((Date.now() - started) / 1000).toFixed(1);
-        const type = detectQuestionType(question, answer);
-
-        chatHistory.push({ role: "assistant", content: answer });
-        if (chatHistory.length > 8) chatHistory = chatHistory.slice(-8);
-
-        lastAnswerText = answer;
-        lastAnswerAt = Date.now();
-
-        saveQAHistory({
-          question,
-          answer,
-          type,
-          timestamp: now(),
-          model: selectedModel
-        });
-
-        byId("typeBadge").textContent = type;
-        byId("latestMeta").textContent = `${ms}s · ${selectedModel} · ${settings.answerMode} · ${now()}`;
-
-        thinking = false;
-
-        if (settings.speakAnswers) {
-          speakAnswer(answer);
-        } else {
-          onAnswerReady();
-        }
-      } catch (err) {
-        thinking = false;
-        byId("latestAnswer").innerHTML = `<p style="color:#f27f7f;">Error: ${esc(err.message)}</p>`;
-        byId("latestMeta").textContent = "Error";
-        setStatus("err", "Answer error");
-        setBottom("OpenAI response failed", err.message || "Unknown error");
       }
+      const answer = fullText.trim() || "No answer returned."; latestPlainAnswer = answer;
+      const ms = ((Date.now() - started) / 1000).toFixed(1); const type = detectQuestionType(question, answer);
+      chatHistory.push({ role: "assistant", content: answer }); if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+      lastAnswerText = answer; lastAnswerAt = Date.now(); saveQAHistory({ question, answer, type, timestamp: now(), model: selectedModel });
+      byId("typeBadge").textContent = type; byId("latestMeta").textContent = `${ms}s · ${selectedModel} · ${settings.answerMode} · ${now()}`;
+      thinking = false; maybeAutoScroll(true);
+      if (settings.speakAnswers) speakAnswer(answer); else onAnswerReady();
+    } catch (err) {
+      thinking = false; byId("latestAnswer").innerHTML = `<p style="color:#ff8585;"><strong>Error:</strong> ${esc(err.message)}</p>`; byId("latestMeta").textContent = "Error"; setStatus("err", "Answer error"); setBottom("OpenAI response failed", err.message || "Unknown error");
     }
+  }
 
-    function onAnswerReady() {
-      if (settings.listenMode === "continuous") {
-        setStatus("on", "Listening");
-        setBottom("Listening...", "Continuous mode: waiting for follow-up.");
-        setLive("Listening... self-read filter active.", true);
-      } else {
-        stopMic();
-        setStatus("", "Answer ready");
-        setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
-        setLive("Answer ready. Mic paused.", true);
-        byId("resumeBtn").classList.remove("hidden");
-      }
-    }
+  function maybeAutoScroll(force = false) { if (!settings.autoScroll) return; if (force || !userIsReading) forceScrollBottom(false); }
+  function forceScrollBottom(smooth = true) { const wrap = byId("answerWrap"); requestAnimationFrame(() => { wrap.scrollTo({ top: wrap.scrollHeight, behavior: smooth ? "smooth" : "auto" }); byId("toBottomBtn").classList.add("hidden"); userIsReading = false; }); }
+  function onAnswerReady() { if (settings.listenMode === "continuous") { setStatus("on", "Listening"); setBottom("Listening...", "Waiting for follow-up. Self-read filter active."); setLive("Listening... self-read filter active.", true); } else { stopMic(); setStatus("", "Answer ready"); setBottom("Reading mode", "Mic paused. Resume when ready."); setLive("Answer ready. Mic paused.", true); show("resumeBtn"); } }
+  function speakAnswer(text) { try { speechSynthesis.cancel(); } catch(e) {} isSpeaking = true; setStatus("thinking", "Speaking"); setBottom("Speaking answer...", "Mic pauses while speaking."); const u = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text)); u.lang = "en-US"; u.rate = 1; u.pitch = 1; u.onend = () => { isSpeaking = false; onAnswerReady(); }; u.onerror = () => { isSpeaking = false; onAnswerReady(); }; speechSynthesis.speak(u); }
 
-    function speakAnswer(text) {
-      speechSynthesis.cancel();
-      isSpeaking = true;
-      setStatus("thinking", "Speaking");
-      setBottom("Speaking answer...", "Self-read filter will try to ignore repeated answer speech.");
+  function saveQAHistory(item) { qaHistory.unshift(item); qaHistory = qaHistory.slice(0, 80); localStorage.setItem("apt_qa_history", JSON.stringify(qaHistory)); renderHistory(); }
+  function renderHistory() { const list = byId("historyList"); list.innerHTML = ""; if (!qaHistory.length) { list.innerHTML = `<div class="history-item"><div class="history-a">No previous answers yet.</div></div>`; return; } qaHistory.forEach((item, index) => { const btn = document.createElement("button"); btn.className = "history-item"; btn.innerHTML = `<div class="history-q">${esc(item.question)}</div><div class="history-a">${esc(shorten(item.answer, 150))}</div><div class="history-meta"><span>${esc(item.type || "General")}</span><span>${esc(item.timestamp || "")}</span><span>${esc(item.model || "")}</span></div>`; btn.onclick = () => loadHistoryItem(index); list.appendChild(btn); }); }
+  function loadHistoryItem(index) { const item = qaHistory[index]; if (!item) return; hide("emptyState"); show("latestCard"); byId("latestQuestion").textContent = item.question; byId("latestAnswer").innerHTML = formatAnswer(item.answer); latestPlainAnswer = item.answer; byId("typeBadge").textContent = item.type || "General"; byId("latestMeta").textContent = `${item.timestamp || ""} · ${item.model || ""}`; forceScrollBottom(false); }
+  function toggleHistory() { historyDrawerOpen = !historyDrawerOpen; byId("historyPanel").classList.toggle("hidden", !historyDrawerOpen); }
+  function exportHistory() { if (!qaHistory.length) { alert("No history to export yet."); return; } const lines = ["ANDROID PROJECT TRAINER AI — HISTORY EXPORT", "Exported: " + new Date().toLocaleString(), "Total Q&As: " + qaHistory.length, "=".repeat(70), ""]; qaHistory.forEach((item, i) => { lines.push(`Q${i + 1} [${item.type || "General"}] — ${item.timestamp || ""}`, "-".repeat(45), "QUESTION:", item.question || "—", "", "ANSWER:", item.answer || "—", "", "=".repeat(70), ""); }); downloadText("android-trainer-history-" + Date.now() + ".txt", lines.join("\n")); }
+  function downloadText(filename, text) { const blob = new Blob([text], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
+  function copyLatestAnswer() { if (!latestPlainAnswer) return; navigator.clipboard.writeText(latestPlainAnswer).then(() => setBottom("Copied", "Latest answer copied to clipboard.")); }
+  function clearAnswer() { clearPendingQuestion(); chatHistory = []; qaHistory = []; latestPlainAnswer = ""; localStorage.removeItem("apt_qa_history"); hide("latestCard"); show("emptyState"); hide("resumeBtn"); byId("latestQuestion").textContent = "—"; byId("latestAnswer").innerHTML = "<p>—</p>"; byId("latestMeta").textContent = "—"; setLive("Ready. Type a question or tap mic.", true); renderHistory(); }
 
-      const u = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
-      u.lang = "en-US";
-      u.rate = 1;
-      u.pitch = 1;
+  function detectQuestionType(question, answer) { const text = `${question} ${answer}`.toLowerCase(); if (/merge intervals|two sum|leetcode|algorithm|array|string|linked list|tree|graph|dp|binary search|sliding window|stack|queue|heap|recursion|kotlin code|main\(\)|solve/.test(text)) return "Coding"; if (/android automotive|aaos|vhal|carservice|vehicle hal|car property|can\b|ecu|automotive|hmi/.test(text)) return "AAOS"; if (/aosp|framework|binder|activitymanager|windowmanager|packagemanager|system service|hal|selinux|zygote/.test(text)) return "AOSP"; if (/compose|xml|viewmodel|usecase|repository|room|retrofit|hilt|coroutines|flow|workmanager|datastore|activity|fragment|android/.test(text)) return "Android"; if (/system design|design an app|architecture|offline-first|scalable/.test(text)) return "Design"; if (/tell me about a time|conflict|leadership|stakeholder|behavioral|challenge|ownership/.test(text)) return "Behavioral"; if (/debug|bug|issue|crash|anr|logs|root cause|rca|production/.test(text)) return "Debugging"; return "General"; }
 
-      u.onend = () => {
-        isSpeaking = false;
-        if (settings.listenMode === "continuous") {
-          setStatus("on", "Listening");
-          setBottom("Listening...", "Continuous mode: waiting for follow-up.");
-          setLive("Listening... self-read filter active.", true);
-        } else {
-          stopMic();
-          setStatus("", "Answer ready");
-          setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
-          setLive("Answer ready. Mic paused.", true);
-          byId("resumeBtn").classList.remove("hidden");
-        }
-      };
+  function formatAnswer(raw) {
+    const codeBlocks = [];
+    let text = raw.replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => { const idx = codeBlocks.length; codeBlocks.push(`<pre><code>${escCode(code.trim())}</code></pre>`); return `%%CB_${idx}%%`; });
+    text = esc(text);
+    text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>'); text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>'); text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    text = text.replace(/^---+$/gm, '<hr style="border:0;border-top:1px solid #2a3b5f;margin:14px 0;">');
+    text = text.replace(/((?:^\d+\. .+\n?)+)/gm, block => `<ol>${block.trim().split('\n').map(l => `<li>${l.replace(/^\d+\.\s*/, '')}</li>`).join('')}</ol>`);
+    text = text.replace(/((?:^[-*] .+\n?)+)/gm, block => `<ul>${block.trim().split('\n').map(l => `<li>${l.replace(/^[-*]\s*/, '')}</li>`).join('')}</ul>`);
+    const blockTags = /^<(h[1-6]|ul|ol|hr|pre|div)/;
+    let html = text.split(/\n{2,}/).map(p => { p = p.trim().replace(/\n/g, '<br>'); if (!p) return ''; if (blockTags.test(p)) return p; return `<p>${p}</p>`; }).filter(Boolean).join('');
+    codeBlocks.forEach((b, i) => { html = html.replace(`%%CB_${i}%%`, b); });
+    return html || '<p>No response.</p>';
+  }
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function escCode(s) { return esc(s); }
+  function stripMarkdownForSpeech(text) { return text.replace(/```[\s\S]*?```/g, " code block omitted ").replace(/`([^`]+)`/g, "$1").replace(/\*\*(.*?)\*\*/g, "$1").replace(/#+\s/g, "").replace(/\n+/g, ". "); }
+  function shorten(text, len) { text = text || ""; return text.length > len ? text.slice(0, len - 1) + "…" : text; }
+  function now() { return new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }); }
 
-      u.onerror = () => {
-        isSpeaking = false;
-        onAnswerReady();
-      };
-
-      speechSynthesis.speak(u);
-    }
-
-    function saveQAHistory(item) {
-      qaHistory.unshift(item);
-      qaHistory = qaHistory.slice(0, 50);
-      localStorage.setItem("aai_qa_history", JSON.stringify(qaHistory));
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const list = byId("historyList");
-      list.innerHTML = "";
-
-      if (!qaHistory.length) {
-        list.innerHTML = `<div class="history-item"><div class="history-a">No previous answers saved yet.</div></div>`;
-        return;
-      }
-
-      qaHistory.forEach((item, index) => {
-        const btn = document.createElement("button");
-        btn.className = "history-item";
-        btn.innerHTML = `
-          <div class="history-q">${esc(item.question)}</div>
-          <div class="history-a">${esc(shorten(item.answer, 120))}</div>
-          <div class="history-meta">
-            <span>${esc(item.type || "General")}</span>
-            <span>${esc(item.timestamp || "")}</span>
-            <span>${esc(item.model || "")}</span>
-          </div>
-        `;
-        btn.onclick = () => loadHistoryItem(index);
-        list.appendChild(btn);
-      });
-    }
-
-    function loadHistoryItem(index) {
-      const item = qaHistory[index];
-      if (!item) return;
-
-      hide("emptyState");
-      show("latestCard");
-      byId("latestQuestion").textContent = item.question;
-      byId("latestAnswer").innerHTML = formatAnswer(item.answer);
-      byId("typeBadge").textContent = item.type || "General";
-      byId("latestMeta").textContent = `${item.timestamp || ""} · ${item.model || ""}`;
-      scrollToLatest();
-    }
-
-    function toggleHistory() {
-      historyDrawerOpen = !historyDrawerOpen;
-      byId("historyPanel").classList.toggle("hidden", !historyDrawerOpen);
-    }
-
-    function detectQuestionType(question, answer) {
-      const text = `${question} ${answer}`.toLowerCase();
-
-      if (/kotlin|array|string|linked list|tree|graph|dp|binary search|leetcode|code|implement|function|algorithm/.test(text)) return "Coding";
-      if (/android automotive|aaos|vhal|carservice|vehicle hal|car property|can|ecu|automotive/.test(text)) return "AAOS";
-      if (/android|activity|fragment|service|broadcast|binder|anr|jetpack|coroutines|flow|room|workmanager/.test(text)) return "Android";
-      if (/tell me about a time|conflict|leadership|stakeholder|behavioral|challenge|pressure|team|ownership/.test(text)) return "Behavioral";
-      if (/what would you do|scenario|suppose|production issue|incident|debug|tradeoff|design/.test(text)) return "Scenario";
-      return "General";
-    }
-
-    function chooseModelForQuestion(question) {
-      return settings.model || "gpt-5.4";
-    }
-
-    function formatAnswer(raw) {
-      const codeBlocks = [];
-      let text = raw.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-        const idx = codeBlocks.length;
-        codeBlocks.push(`<pre><code>${escCode(code.trim())}</code></pre>`);
-        return `%%CB_${idx}%%`;
-      });
-      text = esc(text);
-      text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-      text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-      text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
-      text = text.replace(/^### (.+)$/gm, '<h3 style="font-size:14px;font-weight:800;margin:16px 0 6px;color:#aac8ff;">$1</h3>');
-      text = text.replace(/^## (.+)$/gm,  '<h2 style="font-size:15px;font-weight:800;margin:18px 0 7px;color:#c8daff;">$1</h2>');
-      text = text.replace(/^# (.+)$/gm,   '<h2 style="font-size:16px;font-weight:800;margin:18px 0 8px;color:#dce9ff;border-bottom:1px solid #2b3858;padding-bottom:4px;">$1</h2>');
-      text = text.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #2b3858;margin:14px 0;">');
-      text = text.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
-        const items = block.trim().split('\n').map(l => `<li style="margin-bottom:6px;">${l.replace(/^\d+\.\s*/,'')}</li>`).join('');
-        return `<ol style="margin:8px 0 12px 20px;padding:0;">${items}</ol>`;
-      });
-      text = text.replace(/((?:^[-*] .+\n?)+)/gm, (block) => {
-        const items = block.trim().split('\n').map(l => `<li style="margin-bottom:6px;">${l.replace(/^[-*]\s*/,'')}</li>`).join('');
-        return `<ul style="margin:8px 0 12px 20px;padding:0;">${items}</ul>`;
-      });
-      const blockTags = /^<(h[1-6]|ul|ol|hr|pre|div)/;
-      let html = text.split(/\n{2,}/).map(p => {
-        p = p.trim().replace(/\n/g, '<br>');
-        if (!p) return '';
-        if (blockTags.test(p)) return p;
-        return `<p style="margin:0 0 10px;">${p}</p>`;
-      }).filter(Boolean).join('');
-      codeBlocks.forEach((b, i) => { html = html.replace(`%%CB_${i}%%`, b); });
-      return html || '<p>No response.</p>';
-    }
-
-    function escCode(s) {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    function stripMarkdownForSpeech(text) {
-      return text
-        .replace(/```[\s\S]*?```/g, " code block omitted ")
-        .replace(/`([^`]+)`/g, "$1")
-        .replace(/\*\*(.*?)\*\*/g, "$1")
-        .replace(/\n+/g, ". ");
-    }
-
-    function clearAnswer() {
-      clearPendingQuestion();
-      chatHistory = [];
-      qaHistory = [];
-      localStorage.removeItem("aai_qa_history");
-
-      hide("latestCard");
-      show("emptyState");
-      hide("resumeBtn");
-      byId("latestQuestion").textContent = "—";
-      byId("latestAnswer").innerHTML = "<p>—</p>";
-      byId("latestMeta").textContent = "—";
-      setLive("Ready.", true);
-      renderHistory();
-    }
-
-    function scrollToLatest() {
-      const wrap = byId("answerWrap");
-      setTimeout(() => {
-        wrap.scrollTop = 0;
-      }, 30);
-    }
-
-    function shorten(text, len) {
-      return text.length > len ? text.slice(0, len - 1) + "…" : text;
-    }
-
-    function now() {
-      return new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      });
-    }
-
-    function esc(s) {
-      return String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
-
-    function pickResumeFile() {
-      byId("resumeFile").click();
-    }
-
-    byId("resumeFile").addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      byId("uploadStatus").textContent = `Reading ${file.name}...`;
-
-      try {
-        const ext = file.name.toLowerCase().split(".").pop();
-
-        if (ext === "txt" || ext === "md") {
-          appendResumeText(await file.text());
-        } else if (ext === "pdf") {
-          appendResumeText(await extractTextFromPdf(file));
-        } else if (ext === "docx") {
-          appendResumeText(await extractTextFromDocx(file));
-        } else {
-          throw new Error("Unsupported file type");
-        }
-
-        byId("uploadStatus").textContent = `${file.name} loaded into resume context.`;
-      } catch (err) {
-        byId("uploadStatus").textContent = `Upload failed: ${err.message}`;
-      }
-    });
-
-    function appendResumeText(text) {
-      const box = byId("resumeContext");
-      const trimmed = text.trim();
-      if (!trimmed) throw new Error("No text found in file");
-      box.value = box.value.trim() ? box.value.trim() + "\n\n" + trimmed : trimmed;
-    }
-
-    async function extractTextFromPdf(file) {
-      const arr = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arr }).promise;
-      let out = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        out.push(content.items.map(item => item.str).join(" "));
-      }
-      return out.join("\n\n");
-    }
-
-    async function extractTextFromDocx(file) {
-      const arr = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer: arr });
-      return result.value || "";
-    }
-  </script>
+  function pickResumeFile() { byId("resumeFile").click(); }
+  byId("resumeFile").addEventListener("change", async e => { const file = e.target.files?.[0]; if (!file) return; byId("uploadStatus").textContent = `Reading ${file.name}...`; try { const ext = file.name.toLowerCase().split(".").pop(); let text = ""; if (ext === "txt" || ext === "md") text = await file.text(); else if (ext === "pdf") text = await extractTextFromPdf(file); else if (ext === "docx") text = await extractTextFromDocx(file); else throw new Error("Unsupported file type"); appendResumeText(text); byId("uploadStatus").textContent = `${file.name} loaded into context.`; } catch (err) { byId("uploadStatus").textContent = `Upload failed: ${err.message}`; } });
+  function appendResumeText(text) { const box = byId("resumeContext"); const trimmed = text.trim(); if (!trimmed) throw new Error("No text found in file"); box.value = box.value.trim() ? box.value.trim() + "\n\n" + trimmed : trimmed; }
+  async function extractTextFromPdf(file) { const arr = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arr }).promise; let out = []; for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); out.push(content.items.map(item => item.str).join(" ")); } return out.join("\n\n"); }
+  async function extractTextFromDocx(file) { const arr = await file.arrayBuffer(); const result = await mammoth.extractRawText({ arrayBuffer: arr }); return result.value || ""; }
+</script>
 </body>
 </html>
