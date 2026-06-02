@@ -422,7 +422,7 @@
     }
 
     .bottom-actions {
-      display: flex;
+      display: none;
       align-items: center;
       gap: 6px;
     }
@@ -607,7 +607,7 @@
   <div class="overlay" id="overlay">
     <div class="setup">
       <h2>Ambient AI</h2>
-      <p>Continuous or ask-once interview copilot with mobile-first compact UI.</p>
+      <p>Smart continuous Android interview and project copilot with read-protection mode.</p>
 
       <label class="label" for="keyInput">OpenAI API key</label>
       <input type="password" id="keyInput" placeholder="sk-..." autocomplete="off" />
@@ -654,7 +654,7 @@
       <p id="uploadStatus">No file uploaded.</p>
 
       <label class="label" for="customStyle">Optional extra answer style</label>
-      <textarea id="customStyle" placeholder="Example: natural senior answers, Kotlin for coding, Android mobile or AAOS depending on the question, practical debugging, concise communication."></textarea>
+      <textarea id="customStyle" placeholder="Example: full Android Studio project help, senior natural answers, choose Java/Kotlin based on JD, app/service/framework/AAOS/AOSP layers, clean architecture, readable code."></textarea>
 
       <button class="primary" onclick="saveSettings()">Start</button>
     </div>
@@ -663,7 +663,7 @@
   <div class="topbar">
     <div class="title">
       <h1>Ambient AI</h1>
-      <p>Continuous interview copilot</p>
+      <p>Android app · AAOS · AOSP copilot</p>
     </div>
 
     <div class="status" id="statusBadge">
@@ -791,9 +791,18 @@
     let lastAnswerAt = 0;
     let ignoredCount = 0;
 
+    // Auto read-protection mode:
+    // After an answer is ready, the mic can stay active, but normal speech is ignored
+    // for a short window so your reading voice does not become the next question.
+    let readProtectionUntil = 0;
+    let userIsReading = false;
+
     let pendingQuestionText = "";
     let pendingQuestionTimer = null;
     let pendingQuestionStartedAt = 0;
+
+    let userManuallyScrolledAnswer = false;
+    let answerTouchStartedAt = 0;
 
     const VOICE_THRESHOLD = 0.020;
     const SILENCE_AFTER_SPEECH_MS = 2200;
@@ -809,6 +818,11 @@
     // Longer window = protects longer after answer arrives
     const SELF_READ_WINDOW_MS = 60000;
     const SELF_READ_SIMILARITY_THRESHOLD = 0.55;
+
+    // During this window after an answer, only strong question-like speech is accepted.
+    // You do not need to tap resume manually. Just ask a real follow-up naturally.
+    const READ_PROTECTION_MS = 15000;
+    const FOLLOW_UP_GRACE_MS = 2500;
 
     const QUESTION_MERGE_WINDOW_MS = 4200;
     const MAX_PENDING_QUESTION_MS = 20000;
@@ -834,6 +848,18 @@
       if (inp) inp.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); sendTyped(); }
       });
+
+      const answerWrap = byId("answerWrap");
+      if (answerWrap) {
+        answerWrap.addEventListener("touchstart", () => {
+          answerTouchStartedAt = Date.now();
+          userManuallyScrolledAnswer = true;
+        }, { passive: true });
+
+        answerWrap.addEventListener("wheel", () => {
+          userManuallyScrolledAnswer = true;
+        }, { passive: true });
+      }
     });
     function hide(id) { byId(id).classList.add("hidden"); }
     function show(id) { byId(id).classList.remove("hidden"); }
@@ -857,7 +883,7 @@
       byId("modePill").className = "pill active";
       byId("wakePill").textContent = settings.requireWakePhrase ? "Wake phrase on" : "Wake phrase optional";
       byId("wakePill").className = "pill" + (settings.requireWakePhrase ? " active" : "");
-      byId("filterPill").textContent = "Self-read filter on";
+      byId("filterPill").textContent = "Auto read protection";
       byId("filterPill").className = "pill active";
     }
 
@@ -1147,8 +1173,8 @@
         if (decision.action === "ignore") {
           ignoredCount += 1;
           setStatus("on", "Listening");
-          setBottom("Ignored repeated speech", decision.reason);
-          setLive("Ignored as likely self-read / repeated answer.", true);
+          setBottom("Ignored reading speech", decision.reason);
+          setLive("Ignored reading voice. Ask a clear follow-up when ready.", true);
           return;
         }
 
@@ -1242,6 +1268,39 @@
       return patterns.some(re => re.test(t) || re.test(" " + t));
     }
 
+    function looksLikeStrongFollowUpQuestion(text) {
+      const t = text.trim().toLowerCase();
+
+      // Strong follow-up phrases are accepted even during read-protection mode.
+      // Reading the previous answer usually does not start with these exact phrases.
+      const strongPatterns = [
+        /^hey assistant\b/,
+        /^next question\b/,
+        /^follow up\b/,
+        /^one follow up\b/,
+        /^can you explain\b/,
+        /^can you give\b/,
+        /^how would you\b/,
+        /^what if\b/,
+        /^why would\b/,
+        /^tell me about\b/,
+        /^solve\b/,
+        /^write code\b/,
+        /^implement\b/,
+        /^debug\b/,
+        /^design\b/
+      ];
+
+      if (strongPatterns.some(re => re.test(t))) return true;
+
+      // Also allow normal question words if the transcript is short enough to be a real follow-up.
+      // This avoids accepting long paragraphs that are likely the user reading the answer.
+      const wordCount = tokenize(t).length;
+      if (wordCount <= 18 && looksLikeNewQuestion(t)) return true;
+
+      return false;
+    }
+
     function ignoreIfMatchesLastAnswer(transcript) {
       if (!lastAnswerText || !lastAnswerAt) {
         return { ignore: false, similarity: 0, recent: false };
@@ -1310,6 +1369,21 @@
     function decideWhetherToAnswer(transcript) {
       if (settings.listenMode !== "continuous") {
         return { action: "accept", reason: "ask-once mode" };
+      }
+
+      const normalized = transcript.trim().toLowerCase();
+      const nowTs = Date.now();
+      const inReadProtection = nowTs < readProtectionUntil;
+
+      // During read protection, ignore normal speech unless it clearly sounds like a new question.
+      // This means you can read the answer aloud without manually pausing/resuming the mic.
+      if (inReadProtection) {
+        const strongQuestion = looksLikeStrongFollowUpQuestion(normalized);
+        const enoughGracePassed = nowTs > (lastAnswerAt + FOLLOW_UP_GRACE_MS);
+
+        if (!strongQuestion || !enoughGracePassed) {
+          return { action: "ignore", reason: "Read-protection window active" };
+        }
       }
 
       const ignoreCheck = ignoreIfMatchesLastAnswer(transcript);
@@ -1402,8 +1476,8 @@ function appendToPendingQuestion(text) {
       const resume = settings.resumeContext ? `Candidate background:\n${settings.resumeContext}\n\n` : "";
       const extra = settings.customStyle ? `Extra preferences:\n${settings.customStyle}\n\n` : "";
       const answerModeBlock = settings.answerMode === "compact"
-        ? "Answer length: concise but complete. For concept questions, give a short senior answer first, then one real example. For coding questions, still include Kotlin only, main() function, approach, efficient solution, sample input/output, Big O, and short explanation."
-        : "Answer length: go deep. Full explanation, practical example, working Kotlin code when needed, tradeoffs, edge cases, debugging angle, and line-by-line explanation for coding answers. Do NOT truncate.";
+        ? "Answer length: concise but complete. For concept questions, give a 60-90 second senior answer first, then one real example. For coding questions, provide the smallest practical Android Studio-ready solution first, then explain how it scales."
+        : "Answer length: go deep. Full explanation, full Android Studio project structure, practical example, working Java or Kotlin code based on JD/problem, tradeoffs, edge cases, debugging angle, testing, and line-by-line explanation for coding answers. Do NOT truncate.";
 
       return `You are helping the user answer senior Android Engineer / Android Developer L2 technical interview questions across Kotlin, Android mobile, Android OS/platform, and AAOS when relevant.
 
@@ -1414,17 +1488,52 @@ MANDATORY ORDER FOR NON-CODING QUESTIONS:
 2. Then give one real-world example.
 3. Then add tradeoff / why it matters if useful.
 
-MANDATORY FORMAT FOR ANY DSA OR ANDROID CODING QUESTION:
-1. Start with the approach in natural own words, like a senior engineer explaining how they would solve it.
-2. If useful, briefly mention the simple or brute-force idea first, then move to the efficient solution.
-3. Provide the final solution in Kotlin only.
-4. Always include a complete main() function.
-5. Always use human, readable variable names — not robotic or cryptic names.
-6. Add comments on each line or each important line of code in natural own words.
-7. Always include sample input and sample output.
-8. Always include Big O time complexity and space complexity.
-9. After the code, explain the solution line by line in simple English so the user can say it naturally in an interview.
-10. For Android coding questions, still use Kotlin only and explain why the approach is practical in real Android projects.
+MANDATORY FORMAT FOR ANY DSA, ANDROID APP, AAOS, AOSP, SERVICE, OR FRAMEWORK CODING QUESTION:
+1. Start with a natural senior-level approach, like a real engineer explaining how they would solve it in Android Studio.
+2. Choose Java or Kotlin based on the job description, interviewer wording, or project context. If JD says Java, use Java. If JD says Kotlin, use Kotlin. If not specified, use Kotlin for Android app development and Java for AOSP/framework/platform-style code when it is more realistic.
+3. For pure DSA, provide a runnable main() function.
+4. For Android app coding, provide proper file-by-file code using package names, imports, classes, ViewModel, UiState, UseCase, Repository, and UI when needed.
+5. For AAOS/AOSP/platform coding, include the correct layer: app layer, service layer, framework/Binder layer, AIDL interface, manager/client wrapper, callback handling, lifecycle cleanup, permission notes, and debugging commands when relevant.
+6. Keep code narrow and Android Studio-readable. Avoid long horizontal lines and avoid huge chained calls.
+7. Use meaningful names, not robotic variable names.
+8. Add useful comments, but do not over-comment obvious syntax.
+9. Include sample input/output for DSA and expected behavior/testing steps for Android projects.
+10. Include time/space complexity for DSA and performance/lifecycle/threading notes for Android/AAOS/AOSP problems.
+11. After code, explain how to say the solution in an interview naturally.
+
+FULL ANDROID PROJECT DELIVERY RULES:
+When the user asks for a complete Android project or the interviewer asks to code in Android Studio, provide a complete practical structure, not random snippets.
+Use this order:
+1. What we are building.
+2. Which language is selected and why: Java or Kotlin based on JD/question.
+3. Package structure.
+4. Gradle dependencies only when needed.
+5. Manifest changes only when needed.
+6. Data models / DTOs / entities.
+7. Domain models and UseCases.
+8. Repository interface and implementation.
+9. Service/API/Room/DataStore/Car API/Binder/AIDL integration if relevant.
+10. ViewModel and UiState.
+11. UI screen using Compose or XML based on question/JD.
+12. MainActivity / Service / Receiver / Manager setup.
+13. Error handling, lifecycle cleanup, threading, testing.
+14. Senior interview explanation.
+
+LAYERED ANDROID / AAOS / AOSP CODING RULES:
+- App layer: Activity, Fragment/Compose, ViewModel, MediaSession, BroadcastReceiver, Service, WorkManager, permissions.
+- Domain layer: UseCase owns business decisions and can be unit tested without Android framework.
+- Data layer: Repository implementation talks to Retrofit, Room, DataStore, ContentProvider, Car APIs, Binder client, or vendor SDK wrapper.
+- Service layer: Use foreground/bound service patterns when needed; show lifecycle, binding/unbinding, callbacks, and cleanup.
+- Framework layer: use Binder/AIDL pattern with interface, Stub, Proxy/client manager, service registration, permissions, and death recipient when relevant.
+- AAOS layer: use CarService, CarPropertyManager, CarAudioManager, MediaSession, MediaBrowserService, CarApp constraints, VHAL/property status, area IDs, and dumpsys debugging when relevant.
+- AOSP layer: mention Android.bp, service registration, SELinux, permissions, dumpsys, logcat tags, Perfetto, ANR/tombstone when relevant.
+
+LANGUAGE SELECTION RULE:
+- If user shares a JD, follow the language mentioned in the JD.
+- If JD says Java and Kotlin, choose Kotlin for normal Android app code, Java for framework/AOSP examples unless the question asks Kotlin.
+- If automotive/IVI/embedded/platform question sounds Java-heavy, Java is acceptable.
+- If modern Android app/mobile question, Kotlin is default.
+- If the interviewer explicitly asks a language, obey that language.
 
 STYLE RULES:
 - Use simple English and natural phrasing.
@@ -1439,6 +1548,29 @@ QUESTION ROUTING:
 - For Android OS / framework questions, answer with platform awareness like a senior Android engineer who understands framework, Binder, system services, HAL, AOSP, permissions, performance, and debugging.
 - For AAOS questions, answer with proper automotive depth using CarService, VHAL, CarPropertyManager, HMI integration, and system app constraints when relevant.
 - For coding questions, stay in Kotlin and optimize for interview explanation.
+
+ANDROID PROJECT TRAINER MODE:
+- Act as a full Android Studio project copilot, not just an interview answer generator.
+- When asked to build an app, give end-to-end project files in the correct order.
+- Default architecture for real projects: UI -> ViewModel -> UseCase -> Repository interface -> Repository implementation -> API/Room/Service/Car API/Binder.
+- For quick live coding, start with the simplest working version, then explain the clean architecture version.
+- Use Clean Architecture only where it adds clarity; do not over-engineer tiny problems.
+- Always explain why logic belongs in UseCase, ViewModel, Repository, Service, or Framework layer.
+- For Android app projects, support Compose, XML, Retrofit, Room, Hilt, Coroutines, Flow/StateFlow, DataStore, WorkManager, and tests when relevant.
+- For Android Automotive/AAOS projects, support MediaSession, MediaBrowserService, audio focus, CarService, CarPropertyManager, VHAL properties, CarAudioManager, voice integration, foreground/bound services, and OEM HMI integration.
+- For AOSP/framework projects, support AIDL, Binder callbacks, system services, framework manager classes, permissions, SELinux notes, Android.bp, dumpsys, logcat, and Perfetto.
+- For service communication questions, clearly show the caller, interface, service implementation, callback path, threading model, lifecycle cleanup, and failure handling.
+- For coding answers, keep code formatted for Android Studio with narrow readable lines.
+- Always give a senior-style natural explanation first, not robotic textbook content.
+- Do not force AAOS/AOSP terms into a normal Android mobile question.
+- If the user shares a job description, adapt all answers to that JD, including language choice, stack, examples, and project depth.
+
+ANSWER STYLE FOR THE USER:
+- First give the strongest senior-style answer in natural spoken English.
+- Then show a practical real-time example, preferably from SiriusXM/AAOS/Harman-style IVI work when automotive is relevant.
+- Then provide code or architecture only as much as needed for the question.
+- For live coding, prioritize a working Android Studio solution over long theory.
+- For full projects, provide file-by-file code and explain where each file goes.
 
 AAOS FACTS TO USE ONLY WHEN THE QUESTION IS ACTUALLY AUTOMOTIVE:
 - HVAC/SEAT: Car.createCar(context) → CarPropertyManager via Car.PROPERTY_SERVICE.
@@ -1469,6 +1601,7 @@ ${resume}${extra}`;
       byId("latestAnswer").innerHTML = "<p><em>Thinking...</em></p>";
       byId("latestMeta").textContent = "Generating...";
       byId("typeBadge").textContent = "General";
+      userManuallyScrolledAnswer = false;
       scrollToLatest();
 
       try {
@@ -1531,7 +1664,7 @@ ${resume}${extra}`;
               if (!delta) continue;
               fullText += delta;
               byId("latestAnswer").innerHTML = formatAnswer(fullText);
-              scrollToLatest();
+              keepReadablePositionDuringStream();
             } catch (_) {}
           }
         }
@@ -1575,14 +1708,27 @@ ${resume}${extra}`;
 
     function onAnswerReady() {
       if (settings.listenMode === "continuous") {
-        setStatus("on", "Listening");
-        setBottom("Listening...", "Continuous mode: waiting for follow-up.");
-        setLive("Listening... self-read filter active.", true);
+        // Keep the mic technically active, but protect the answer-reading window.
+        // This avoids manual resume while preventing your own reading voice from triggering answers.
+        readProtectionUntil = Date.now() + READ_PROTECTION_MS;
+        userIsReading = true;
+
+        setStatus("on", "Reading safe");
+        setBottom("Read the answer", "Mic stays on, but normal reading speech is ignored briefly.");
+        setLive("Reading-safe mode. Ask a clear follow-up when ready.", true);
+
+        setTimeout(() => {
+          if (!active || thinking || settings.listenMode !== "continuous") return;
+          userIsReading = false;
+          setStatus("on", "Listening");
+          setBottom("Listening...", "Ask your follow-up naturally.");
+          setLive("Listening for the next question.", true);
+        }, READ_PROTECTION_MS);
       } else {
         stopMic();
         setStatus("", "Answer ready");
-        setBottom("Reading mode", "Mic paused. Resume when you want the next question.");
-        setLive("Answer ready. Mic paused.", true);
+        setBottom("Answer ready", "Tap mic when you want the next question.");
+        setLive("Answer ready.", true);
         byId("resumeBtn").classList.remove("hidden");
       }
     }
@@ -1755,6 +1901,21 @@ ${resume}${extra}`;
       setTimeout(() => {
         wrap.scrollTop = 0;
       }, 30);
+    }
+
+    function keepReadablePositionDuringStream() {
+      const wrap = byId("answerWrap");
+      if (!wrap) return;
+
+      // Do not force scroll while the user is reading/scrolling manually.
+      // This is the main fix for "I can't scroll while answer is in progress."
+      if (userManuallyScrolledAnswer) return;
+
+      // Since the latest card starts at the top, keep the top stable only at the start.
+      // After content grows, avoid repeated jumpy scrolling.
+      if (wrap.scrollTop < 8) {
+        wrap.scrollTop = 0;
+      }
     }
 
     function shorten(text, len) {
